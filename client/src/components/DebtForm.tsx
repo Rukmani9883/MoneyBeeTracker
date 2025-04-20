@@ -241,7 +241,7 @@ const DebtForm = ({
                 <FormLabel>Total Amount</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white text-lg">$</span>
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white text-lg">₹</span>
                     <Input
                       placeholder="0.00"
                       type="number"
@@ -265,7 +265,7 @@ const DebtForm = ({
                 <FormLabel>Remaining Amount</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white text-lg">$</span>
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white text-lg">₹</span>
                     <Input
                       placeholder="0.00"
                       type="number"
@@ -315,7 +315,7 @@ const DebtForm = ({
                 <FormLabel>Monthly Payment (Optional)</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white text-lg">$</span>
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-white text-lg">₹</span>
                     <Input
                       placeholder="0.00"
                       type="number"

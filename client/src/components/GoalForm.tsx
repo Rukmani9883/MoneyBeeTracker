@@ -82,10 +82,10 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
       } else {
         onClose();
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to create goal: ${error.message}`,
+        description: `Failed to create goal: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     } finally {

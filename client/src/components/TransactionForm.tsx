@@ -168,10 +168,10 @@ const TransactionForm = ({
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to ${existingTransaction ? "update" : "create"} ${values.transactionType === "income" ? "income" : "expense"}: ${error.message}`,
+        description: `Failed to ${existingTransaction ? "update" : "create"} ${values.transactionType === "income" ? "income" : "expense"}: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     } finally {
