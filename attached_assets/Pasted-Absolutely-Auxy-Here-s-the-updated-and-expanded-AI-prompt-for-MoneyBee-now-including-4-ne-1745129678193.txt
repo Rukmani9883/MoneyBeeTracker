@@ -1,0 +1,83 @@
+Absolutely, Auxy! Here's the updated and expanded **AI prompt** for *MoneyBee*, now including **4 new modules** while keeping the structure, clarity, and integration logic consistent with the previous modules:
+
+---
+
+**Prompt: Personal Finance Tracker – "MoneyBee"**
+
+I want to create a **Personal Finance Tracker** web application named **MoneyBee** using the following tech stack:
+
+- **Frontend:** React.js, Next.js  
+- **Backend:** Prisma ORM  
+- **Database:** SQL (to create and manage a virtual relational database)  
+
+The application should be built with **8 interconnected modules**, as described below:
+
+---
+
+### 🔹 **Existing Modules**
+
+#### 1. **Dashboard Module**  
+Acts as the **main homepage** that connects all other modules. Displays a **summary** of Income, Expenses, Savings, Vault, Debt, and EMI. It is fully **editable** and customizable by the user and dynamically fetches and displays real-time data.
+
+#### 2. **Income Tracker**  
+Allows users to add, edit, and delete income sources on a **monthly basis**. Displays total income on the dashboard and supports various categorized income streams.
+
+#### 3. **Savings Tracker**  
+Automatically calculates savings based on:  
+`Savings = Income - Expenses`.  
+Users can **set monthly saving goals**, view a **progress bar**, and check whether goals are met.
+
+#### 4. **Expense Tracker**  
+Tracks and categorizes expenses. Users can **set monthly limits**, get **notifications** when nearing the limit, and view details on the dashboard.
+
+---
+
+### 🔸 **New Modules**
+
+#### 5. **Vault Module – Future Goals & Funds**  
+- Allows users to **create and manage future financial goals**, such as *Emergency Fund*, *Summer Vacation*, etc.  
+- Each goal will have:  
+  - A **name/label**  
+  - A **target amount**  
+  - An **"Add Money"** and **"Withdraw Money"** feature  
+- Progress toward each goal will be tracked and displayed.  
+- Integrated into the dashboard for quick overview.
+
+#### 6. **Debt Manager Module – Loans & Lending Tracker**  
+This module will have **two sections**:  
+**Section A: Debts You Owe**  
+- Track individuals/institutions to whom the user owes money.  
+- Input total amount borrowed, amount repaid, and monthly repayments.  
+- Show repayment progress and outstanding balance.  
+
+**Section B: Debts Others Owe You**  
+- Track who owes money **to the user**.  
+- Input total borrowed, repayment progress, and remaining balance.  
+- Useful for personal loans, friend/family borrowings, etc.  
+
+Both sections update monthly and reflect on the dashboard.
+
+#### 7. **EMI & Bill Reminder Module**  
+- Allows users to add **utility bills** and **EMIs** for ongoing purchases.  
+- Categories include:  
+  - **Electricity, Internet, Mobile Recharge**  
+  - **Credit Card Bills, Personal Loans, Electronics EMIs**, etc.  
+- Users can set **due dates, amounts, and payment frequencies**.  
+- Provides **timely reminders/alerts** and displays upcoming bills on the dashboard.  
+- Missed payments can be highlighted for user action.
+
+---
+
+### 🔄 **Interconnectivity & Logic (All Modules)**
+
+- **Expense Tracker** deducts from **Income** automatically.  
+- **Savings** updates monthly based on unspent income.  
+- **Vault goals** can optionally receive transfers from Savings or Income.  
+- **Debt Manager** logs repayments as monthly **expenses**.  
+- **EMI & Bill payments** are added as part of **monthly expenses** and affect the overall **savings** and **budget health**.  
+- The **Dashboard** acts as a central hub, summarizing each module with editable and trackable components.  
+- All data (income, expenses, savings, vaults, debts, EMIs) is **stored and editable**, with a user-friendly interface for managing personal finance over time.
+
+---
+
+Let me know if you want this turned into wireframes, a database schema, or user story format next!
