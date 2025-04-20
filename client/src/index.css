@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
+    
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 96%;
+    
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 96%;
+    
+    --primary: 51 100% 50%; /* MoneyBee yellow/gold */
+    --primary-foreground: 0 0% 7%;
+    
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 0 0% 96%;
+    
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 60%;
+    
+    --accent: 51 100% 50%; /* MoneyBee yellow/gold */
+    --accent-foreground: 0 0% 7%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 96%;
+
+    --success: 122 39% 49%;
+    --success-foreground: 0 0% 96%;
+    
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 18%;
+    
+    --radius: 0.5rem;
+    
+    /* Chart colors */
+    --chart-1: 122 39% 49%; /* Green */
+    --chart-2: 0 84% 60%; /* Red */
+    --chart-3: 210 79% 46%; /* Blue */
+    --chart-4: 36 100% 50%; /* Orange */
+    --chart-5: 51 100% 50%; /* Yellow/Gold */
+    
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 51 100% 50%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 51 100% 50%;
+    --sidebar-accent-foreground: 0 0% 7%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 0 0% 18%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-card;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-sm;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-accent;
+  }
+  
+  /* Animations */
+  .fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .progress-bar {
+    transition: width 1s ease-in-out;
+  }
+}

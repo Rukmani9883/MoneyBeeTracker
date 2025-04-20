@@ -1,0 +1,877 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { 
+  insertUserSchema, 
+  insertIncomeSchema,
+  insertExpenseSchema,
+  insertSavingsSchema,
+  insertVaultGoalSchema,
+  insertDebtSchema,
+  insertBillSchema,
+  insertTransactionSchema
+} from "@shared/schema";
+import { formatISO } from "date-fns";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // prefix all routes with /api
+  const api = "/api";
+
+  // User routes
+  app.post(`${api}/auth/register`, async (req: Request, res: Response) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const existingUser = await storage.getUserByUsername(userData.username);
+      
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      const user = await storage.createUser(userData);
+      // Don't return password in response
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/auth/login`, async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Don't return password in response
+      const { password: userPassword, ...userWithoutPassword } = user;
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Income routes
+  app.get(`${api}/incomes`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const incomes = await storage.getIncomes(userId);
+      res.status(200).json(incomes);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/incomes`, async (req: Request, res: Response) => {
+    try {
+      const incomeData = insertIncomeSchema.parse(req.body);
+      const income = await storage.createIncome(incomeData);
+      res.status(201).json(income);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/incomes/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const income = await storage.getIncomeById(id);
+      
+      if (!income) {
+        return res.status(404).json({ message: "Income not found" });
+      }
+      
+      res.status(200).json(income);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/incomes/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const incomeData = req.body;
+      const updatedIncome = await storage.updateIncome(id, incomeData);
+      
+      if (!updatedIncome) {
+        return res.status(404).json({ message: "Income not found" });
+      }
+      
+      res.status(200).json(updatedIncome);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete(`${api}/incomes/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteIncome(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Income not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/incomes/monthly`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const month = parseInt(req.query.month as string);
+      const year = parseInt(req.query.year as string);
+      
+      if (isNaN(userId) || isNaN(month) || isNaN(year)) {
+        return res.status(400).json({ message: "Invalid parameters" });
+      }
+      
+      const incomes = await storage.getMonthlyIncome(userId, month, year);
+      const total = await storage.getTotalIncome(userId, month, year);
+      
+      res.status(200).json({ incomes, total });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Expense routes
+  app.get(`${api}/expenses`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const expenses = await storage.getExpenses(userId);
+      res.status(200).json(expenses);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/expenses`, async (req: Request, res: Response) => {
+    try {
+      const expenseData = insertExpenseSchema.parse(req.body);
+      const expense = await storage.createExpense(expenseData);
+      res.status(201).json(expense);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/expenses/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const expense = await storage.getExpenseById(id);
+      
+      if (!expense) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      
+      res.status(200).json(expense);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/expenses/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const expenseData = req.body;
+      const updatedExpense = await storage.updateExpense(id, expenseData);
+      
+      if (!updatedExpense) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      
+      res.status(200).json(updatedExpense);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete(`${api}/expenses/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteExpense(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/expenses/monthly`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const month = parseInt(req.query.month as string);
+      const year = parseInt(req.query.year as string);
+      
+      if (isNaN(userId) || isNaN(month) || isNaN(year)) {
+        return res.status(400).json({ message: "Invalid parameters" });
+      }
+      
+      const expenses = await storage.getMonthlyExpenses(userId, month, year);
+      const total = await storage.getTotalExpenses(userId, month, year);
+      
+      res.status(200).json({ expenses, total });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Savings routes
+  app.get(`${api}/savings`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const savings = await storage.getSavings(userId);
+      res.status(200).json(savings);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/savings`, async (req: Request, res: Response) => {
+    try {
+      const savingData = insertSavingsSchema.parse(req.body);
+      const saving = await storage.createSaving(savingData);
+      res.status(201).json(saving);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/savings/monthly`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const month = req.query.month as string;
+      const year = parseInt(req.query.year as string);
+      
+      if (isNaN(userId) || !month || isNaN(year)) {
+        return res.status(400).json({ message: "Invalid parameters" });
+      }
+      
+      const saving = await storage.getMonthlySavings(userId, month, year);
+      
+      if (!saving) {
+        return res.status(404).json({ message: "Savings not found for this month" });
+      }
+      
+      res.status(200).json(saving);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/savings/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const savingData = req.body;
+      const updatedSaving = await storage.updateSaving(id, savingData);
+      
+      if (!updatedSaving) {
+        return res.status(404).json({ message: "Saving not found" });
+      }
+      
+      res.status(200).json(updatedSaving);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Vault Goals routes
+  app.get(`${api}/vault-goals`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const goals = await storage.getVaultGoals(userId);
+      res.status(200).json(goals);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/vault-goals`, async (req: Request, res: Response) => {
+    try {
+      const goalData = insertVaultGoalSchema.parse(req.body);
+      const goal = await storage.createVaultGoal(goalData);
+      res.status(201).json(goal);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/vault-goals/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const goal = await storage.getVaultGoalById(id);
+      
+      if (!goal) {
+        return res.status(404).json({ message: "Goal not found" });
+      }
+      
+      res.status(200).json(goal);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/vault-goals/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const goalData = req.body;
+      const updatedGoal = await storage.updateVaultGoal(id, goalData);
+      
+      if (!updatedGoal) {
+        return res.status(404).json({ message: "Goal not found" });
+      }
+      
+      res.status(200).json(updatedGoal);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete(`${api}/vault-goals/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteVaultGoal(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Goal not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/vault-goals/:id/add-funds`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { amount } = req.body;
+      
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      
+      const updatedGoal = await storage.addFundsToGoal(id, amount);
+      
+      if (!updatedGoal) {
+        return res.status(404).json({ message: "Goal not found" });
+      }
+      
+      res.status(200).json(updatedGoal);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/vault-goals/:id/withdraw-funds`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { amount } = req.body;
+      
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      
+      const updatedGoal = await storage.withdrawFundsFromGoal(id, amount);
+      
+      if (!updatedGoal) {
+        return res.status(404).json({ message: "Goal not found or insufficient funds" });
+      }
+      
+      res.status(200).json(updatedGoal);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Debt routes
+  app.get(`${api}/debts`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const debts = await storage.getDebts(userId);
+      res.status(200).json(debts);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/debts`, async (req: Request, res: Response) => {
+    try {
+      const debtData = insertDebtSchema.parse(req.body);
+      const debt = await storage.createDebt(debtData);
+      res.status(201).json(debt);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/debts/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const debt = await storage.getDebtById(id);
+      
+      if (!debt) {
+        return res.status(404).json({ message: "Debt not found" });
+      }
+      
+      res.status(200).json(debt);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/debts/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const debtData = req.body;
+      const updatedDebt = await storage.updateDebt(id, debtData);
+      
+      if (!updatedDebt) {
+        return res.status(404).json({ message: "Debt not found" });
+      }
+      
+      res.status(200).json(updatedDebt);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete(`${api}/debts/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteDebt(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Debt not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/debts/by-ownership`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const isOwedByUser = req.query.isOwedByUser === 'true';
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const debts = await storage.getDebtsByOwnership(userId, isOwedByUser);
+      const total = await storage.getTotalDebts(userId, isOwedByUser);
+      
+      res.status(200).json({ debts, total });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Bills routes
+  app.get(`${api}/bills`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const bills = await storage.getBills(userId);
+      res.status(200).json(bills);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/bills`, async (req: Request, res: Response) => {
+    try {
+      const billData = insertBillSchema.parse(req.body);
+      const bill = await storage.createBill(billData);
+      res.status(201).json(bill);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/bills/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const bill = await storage.getBillById(id);
+      
+      if (!bill) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+      
+      res.status(200).json(bill);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/bills/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const billData = req.body;
+      const updatedBill = await storage.updateBill(id, billData);
+      
+      if (!updatedBill) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+      
+      res.status(200).json(updatedBill);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete(`${api}/bills/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteBill(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/bills/upcoming`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const daysAhead = parseInt(req.query.daysAhead as string) || 30;
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const bills = await storage.getUpcomingBills(userId, daysAhead);
+      res.status(200).json(bills);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/bills/:id/mark-paid`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updatedBill = await storage.markBillAsPaid(id);
+      
+      if (!updatedBill) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+      
+      res.status(200).json(updatedBill);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Transaction routes
+  app.get(`${api}/transactions`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const transactions = await storage.getTransactions(userId);
+      res.status(200).json(transactions);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/transactions`, async (req: Request, res: Response) => {
+    try {
+      const transactionData = insertTransactionSchema.parse(req.body);
+      const transaction = await storage.createTransaction(transactionData);
+      res.status(201).json(transaction);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/transactions/recent`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const limit = parseInt(req.query.limit as string) || 5;
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const transactions = await storage.getRecentTransactions(userId, limit);
+      res.status(200).json(transactions);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Dashboard summary route
+  app.get(`${api}/dashboard/summary`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      // Get total income for current month
+      const totalIncome = await storage.getTotalIncome(userId, currentMonth, currentYear);
+      
+      // Get total expenses for current month
+      const totalExpenses = await storage.getTotalExpenses(userId, currentMonth, currentYear);
+      
+      // Calculate savings (income - expenses)
+      const savings = totalIncome - totalExpenses;
+      
+      // Get all vault goals and sum up current amounts
+      const vaultGoals = await storage.getVaultGoals(userId);
+      const totalVault = vaultGoals.reduce((total, goal) => total + goal.currentAmount, 0);
+      
+      // Get total debts
+      const totalDebtsOwed = await storage.getTotalDebts(userId, true);
+      const totalDebtsOwedToUser = await storage.getTotalDebts(userId, false);
+      
+      // Get upcoming bills
+      const upcomingBills = await storage.getUpcomingBills(userId, 30);
+      const totalBills = upcomingBills.reduce((total, bill) => total + bill.amount, 0);
+      
+      // Get recent transactions
+      const recentTransactions = await storage.getRecentTransactions(userId, 5);
+      
+      // Return all summary data
+      res.status(200).json({
+        totalIncome,
+        totalExpenses,
+        savings,
+        totalVault,
+        totalDebts: totalDebtsOwed,
+        totalDebtsOwedToUser,
+        totalBills,
+        upcomingBills,
+        recentTransactions
+      });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Create test data for demonstration
+  app.post(`${api}/demo-data`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      // Create sample incomes
+      await storage.createIncome({
+        userId,
+        name: "Salary",
+        amount: 4250,
+        category: "Employment",
+        date: new Date(currentYear, currentMonth, 1),
+        recurring: true,
+        frequency: "monthly",
+        notes: "Monthly salary"
+      });
+      
+      // Create sample expenses
+      await storage.createExpense({
+        userId,
+        name: "Grocery Shopping",
+        amount: 85.40,
+        category: "Food",
+        date: new Date(currentYear, currentMonth, 15),
+        recurring: false,
+        frequency: null,
+        notes: "Weekly groceries"
+      });
+      
+      await storage.createExpense({
+        userId,
+        name: "Netflix Subscription",
+        amount: 14.99,
+        category: "Entertainment",
+        date: new Date(currentYear, currentMonth, 10),
+        recurring: true,
+        frequency: "monthly",
+        notes: "Monthly subscription"
+      });
+      
+      await storage.createExpense({
+        userId,
+        name: "Dinner with Friends",
+        amount: 65.20,
+        category: "Dining",
+        date: new Date(currentYear, currentMonth, 8),
+        recurring: false,
+        frequency: null,
+        notes: "Restaurant dinner"
+      });
+      
+      // Create sample vault goals
+      await storage.createVaultGoal({
+        userId,
+        name: "Emergency Fund",
+        targetAmount: 10000,
+        currentAmount: 3000,
+        deadline: new Date(currentYear + 1, 0, 1),
+        notes: "Emergency fund for unexpected expenses"
+      });
+      
+      await storage.createVaultGoal({
+        userId,
+        name: "Vacation 2023",
+        targetAmount: 2500,
+        currentAmount: 1800,
+        deadline: new Date(currentYear, 7, 1),
+        notes: "Summer vacation funds"
+      });
+      
+      await storage.createVaultGoal({
+        userId,
+        name: "New Laptop",
+        targetAmount: 1500,
+        currentAmount: 900,
+        deadline: new Date(currentYear, 11, 1),
+        notes: "Saving for a new laptop"
+      });
+      
+      // Create sample bills
+      await storage.createBill({
+        userId,
+        name: "Internet Bill",
+        amount: 59.99,
+        dueDate: new Date(currentYear, currentMonth, now.getDate() + 2),
+        category: "Utilities",
+        recurring: true,
+        frequency: "monthly",
+        isPaid: false,
+        reminderDays: 3,
+        autoPayment: false,
+        notes: "Monthly internet bill"
+      });
+      
+      await storage.createBill({
+        userId,
+        name: "Credit Card Payment",
+        amount: 350,
+        dueDate: new Date(currentYear, currentMonth, now.getDate() + 5),
+        category: "Finance",
+        recurring: true,
+        frequency: "monthly",
+        isPaid: false,
+        reminderDays: 5,
+        autoPayment: false,
+        notes: "Monthly credit card payment"
+      });
+      
+      await storage.createBill({
+        userId,
+        name: "Phone Bill",
+        amount: 45,
+        dueDate: new Date(currentYear, currentMonth, now.getDate() + 8),
+        category: "Utilities",
+        recurring: true,
+        frequency: "monthly",
+        isPaid: false,
+        reminderDays: 3,
+        autoPayment: false,
+        notes: "Monthly phone bill"
+      });
+      
+      await storage.createBill({
+        userId,
+        name: "Car Loan EMI",
+        amount: 275.50,
+        dueDate: new Date(currentYear, currentMonth, now.getDate() + 12),
+        category: "Loans",
+        recurring: true,
+        frequency: "monthly",
+        isPaid: false,
+        reminderDays: 5,
+        autoPayment: false,
+        notes: "Monthly car loan payment"
+      });
+      
+      // Create sample debts
+      await storage.createDebt({
+        userId,
+        name: "Car Loan",
+        isOwedByUser: true,
+        totalAmount: 15000,
+        remainingAmount: 12500,
+        interestRate: 4.5,
+        dueDate: new Date(currentYear + 3, 0, 1),
+        monthlyPayment: 275.50,
+        category: "Auto Loan",
+        notes: "5-year car loan"
+      });
+      
+      await storage.createDebt({
+        userId,
+        name: "John's Borrowed Money",
+        isOwedByUser: false,
+        totalAmount: 500,
+        remainingAmount: 500,
+        interestRate: 0,
+        dueDate: new Date(currentYear, currentMonth + 1, 15),
+        monthlyPayment: 500,
+        category: "Personal Loan",
+        notes: "Money lent to John"
+      });
+      
+      res.status(200).json({ message: "Demo data created successfully" });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
