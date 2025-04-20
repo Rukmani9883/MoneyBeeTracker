@@ -66,20 +66,22 @@ const SavingsGoals = ({ userId }: SavingsGoalsProps) => {
       
       {topGoals.length > 0 ? (
         topGoals.map(goal => {
-          const progressPercentage = Math.round((goal.currentAmount / goal.targetAmount) * 100);
-          const formattedCurrent = new Intl.NumberFormat('en-US', { 
+          const currentAmount = goal.currentAmount || 0;
+          const targetAmount = goal.targetAmount || 1; // prevent division by zero
+          const progressPercentage = Math.round((currentAmount / targetAmount) * 100);
+          const formattedCurrent = new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
-            currency: 'USD',
+            currency: 'INR',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0 
-          }).format(goal.currentAmount);
+          }).format(currentAmount);
           
-          const formattedTarget = new Intl.NumberFormat('en-US', { 
+          const formattedTarget = new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
-            currency: 'USD',
+            currency: 'INR',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0 
-          }).format(goal.targetAmount);
+          }).format(targetAmount);
           
           return (
             <div key={goal.id} className="mb-4">
@@ -98,7 +100,7 @@ const SavingsGoals = ({ userId }: SavingsGoalsProps) => {
               />
               <div className="flex justify-between items-center mt-1">
                 <span className="text-xs text-[#999999]">{progressPercentage}% complete</span>
-                <span className="text-xs text-[#4CAF50]">+$200 this month</span>
+                <span className="text-xs text-[#4CAF50]">+₹200 this month</span>
               </div>
             </div>
           );

@@ -9,9 +9,9 @@ interface SummaryCardProps {
 }
 
 const SummaryCard = ({ title, amount, percentChange, icon, iconColor }: SummaryCardProps) => {
-  const formattedAmount = new Intl.NumberFormat('en-US', { 
+  const formattedAmount = new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
-    currency: 'USD',
+    currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(amount);
