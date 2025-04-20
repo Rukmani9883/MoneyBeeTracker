@@ -129,9 +129,9 @@ const UpcomingBills = ({ userId, limit = 4 }: UpcomingBillsProps) => {
           const iconColor = getCategoryIconColor(bill.category);
           const dueText = getDueText(bill.dueDate.toString());
           
-          const formattedAmount = new Intl.NumberFormat('en-US', { 
+          const formattedAmount = new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
-            currency: 'USD' 
+            currency: 'INR' 
           }).format(bill.amount);
           
           return (

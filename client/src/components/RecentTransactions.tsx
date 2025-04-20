@@ -142,9 +142,9 @@ const RecentTransactions = ({ userId, limit = 4 }: RecentTransactionsProps) => {
           const amountColor = transaction.type === 'income' ? 'text-[#4CAF50]' : 
                             (transaction.type === 'expense' ? 'text-[#F44336]' : 'text-[#2196F3]');
           
-          const formattedAmount = new Intl.NumberFormat('en-US', { 
+          const formattedAmount = new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
-            currency: 'USD' 
+            currency: 'INR' 
           }).format(transaction.amount);
           
           const formattedDate = format(new Date(transaction.date), "MMM d, yyyy");

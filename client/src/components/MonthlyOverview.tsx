@@ -27,21 +27,21 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="bg-[#2D2D2D] p-3 rounded shadow-lg border border-[#444444]">
         <p className="text-[#F5F5F5] font-semibold mb-1">{label}</p>
         <p className="text-[#4CAF50]">
-          Income: {new Intl.NumberFormat('en-US', { 
+          Income: {new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
-            currency: 'USD' 
+            currency: 'INR' 
           }).format(payload[0].value)}
         </p>
         <p className="text-[#F44336]">
-          Expenses: {new Intl.NumberFormat('en-US', { 
+          Expenses: {new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
-            currency: 'USD' 
+            currency: 'INR' 
           }).format(payload[1].value)}
         </p>
         <p className="text-[#FFD700] pt-1 border-t border-[#444444] mt-1">
-          Savings: {new Intl.NumberFormat('en-US', { 
+          Savings: {new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
-            currency: 'USD' 
+            currency: 'INR' 
           }).format(payload[0].value - payload[1].value)}
         </p>
       </div>
@@ -111,7 +111,7 @@ const MonthlyOverview = ({ data }: MonthlyOverviewProps) => {
               tick={{ fill: '#CCCCCC' }} 
               tickLine={{ stroke: '#2D2D2D' }}
               axisLine={{ stroke: '#2D2D2D' }}
-              tickFormatter={(value) => `$${value/1000}k`}
+              tickFormatter={(value) => `₹${value/1000}k`}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend 
