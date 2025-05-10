@@ -1,6 +1,4 @@
 import { Switch, Route, useLocation, useRoute, Redirect } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -43,30 +41,28 @@ function App() {
   const userId = user?.id;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen flex flex-col md:flex-row bg-[#121212] text-white">
-          {isAuthenticated && <Sidebar activePath={location} />}
-          
-          <main className={`flex-1 ${isAuthenticated ? 'md:ml-64' : ''} min-h-screen bg-[#121212]`}>
-            <Switch>
-              <Route path="/login" component={Login} />
-              <Route path="/register" component={Register} />
-              <Route path="/" component={() => isAuthenticated ? <Dashboard userId={userId} /> : <Redirect to="/login" />} />
-              <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} userId={userId} />} />
-              <Route path="/income" component={() => <ProtectedRoute component={Income} userId={userId} />} />
-              <Route path="/expenses" component={() => <ProtectedRoute component={Expenses} userId={userId} />} />
-              <Route path="/savings" component={() => <ProtectedRoute component={Savings} userId={userId} />} />
-              <Route path="/vault" component={() => <ProtectedRoute component={Vault} userId={userId} />} />
-              <Route path="/debt" component={() => <ProtectedRoute component={Debt} userId={userId} />} />
-              <Route path="/bills" component={() => <ProtectedRoute component={Bills} userId={userId} />} />
-              <Route component={NotFound} />
-            </Switch>
-          </main>
-        </div>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <TooltipProvider>
+      <div className="min-h-screen flex flex-col md:flex-row bg-[#121212] text-white">
+        {isAuthenticated && <Sidebar activePath={location} />}
+        
+        <main className={`flex-1 ${isAuthenticated ? 'md:ml-64' : ''} min-h-screen bg-[#121212]`}>
+          <Switch>
+            <Route path="/login" component={Login} />
+            <Route path="/register" component={Register} />
+            <Route path="/" component={() => isAuthenticated ? <Dashboard userId={userId} /> : <Redirect to="/login" />} />
+            <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} userId={userId} />} />
+            <Route path="/income" component={() => <ProtectedRoute component={Income} userId={userId} />} />
+            <Route path="/expenses" component={() => <ProtectedRoute component={Expenses} userId={userId} />} />
+            <Route path="/savings" component={() => <ProtectedRoute component={Savings} userId={userId} />} />
+            <Route path="/vault" component={() => <ProtectedRoute component={Vault} userId={userId} />} />
+            <Route path="/debt" component={() => <ProtectedRoute component={Debt} userId={userId} />} />
+            <Route path="/bills" component={() => <ProtectedRoute component={Bills} userId={userId} />} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+      <Toaster />
+    </TooltipProvider>
   );
 }
 
