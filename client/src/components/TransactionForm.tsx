@@ -147,9 +147,17 @@ const TransactionForm = ({
       // Determine which API endpoint to use based on transaction type
       const endpoint = values.transactionType === "income" ? "/api/incomes" : "/api/expenses";
       
+      let response;
       if (existingTransaction) {
         // Update existing transaction
-        await apiRequest("PUT", `${endpoint}/${existingTransaction.id}`, transactionData);
+        response = await apiRequest(
+          `${endpoint}/${existingTransaction.id}`, 
+          {
+            method: "PUT",
+            body: JSON.stringify(transactionData),
+          }
+        );
+        
         toast({
           title: "Success",
           description: `${values.transactionType === "income" ? "Income" : "Expense"} updated successfully.`,
@@ -157,12 +165,40 @@ const TransactionForm = ({
         });
       } else {
         // Create new transaction
-        await apiRequest("POST", endpoint, transactionData);
+        response = await apiRequest(
+          endpoint, 
+          {
+            method: "POST",
+            body: JSON.stringify(transactionData),
+          }
+        );
+        
         toast({
           title: "Success",
           description: `${values.transactionType === "income" ? "Income" : "Expense"} added successfully.`,
           variant: "default",
         });
+      }
+      
+      // Add a transaction record
+      if (response && response.ok) {
+        // Create transaction record if needed
+        await apiRequest(
+          "/api/transactions", 
+          {
+            method: "POST",
+            body: JSON.stringify({
+              userId: values.userId,
+              type: values.transactionType,
+              date: new Date(values.date),
+              amount: parseFloat(values.amount),
+              category: values.category,
+              description: values.name,
+              sourceId: null,
+              destinationId: null,
+            }),
+          }
+        );
       }
       
       if (onSuccess) {

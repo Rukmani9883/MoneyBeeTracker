@@ -60,80 +60,73 @@ const Sidebar = ({ activePath }: SidebarProps) => {
       </div>
       
       <nav className="py-4 flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto gap-1 px-2">
-        <Link href="/dashboard">
-          <a className={`flex items-center p-3 rounded-lg ${isActive("/dashboard") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span>Dashboard</span>
-          </a>
+        <Link href="/dashboard" 
+          className={`flex items-center p-3 rounded-lg ${isActive("/dashboard") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Dashboard</span>
         </Link>
         
-        <Link href="/income">
-          <a className={`flex items-center p-3 rounded-lg ${isActive("/income") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="16"></line>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            <span>Income</span>
-          </a>
+        <Link href="/income"
+          className={`flex items-center p-3 rounded-lg ${isActive("/income") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          <span>Income</span>
         </Link>
         
-        <Link href="/expenses">
-          <a className={`flex items-center p-3 rounded-lg ${isActive("/expenses") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18"></path>
-              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-            </svg>
-            <span>Expenses</span>
-          </a>
+        <Link href="/expenses"
+          className={`flex items-center p-3 rounded-lg ${isActive("/expenses") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+          </svg>
+          <span>Expenses</span>
         </Link>
         
-        <Link href="/savings">
-          <a className={`flex items-center p-3 rounded-lg ${isActive("/savings") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m5 0h1M9 11h1m5 0h1M9 15h1m5 0h1"></path>
-            </svg>
-            <span>Savings</span>
-          </a>
+        <Link href="/savings"
+          className={`flex items-center p-3 rounded-lg ${isActive("/savings") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m5 0h1M9 11h1m5 0h1M9 15h1m5 0h1"></path>
+          </svg>
+          <span>Savings</span>
         </Link>
         
-        <Link href="/vault">
-          <a className={`flex items-center p-3 rounded-lg ${isActive("/vault") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="12" cy="10" r="3"></circle>
-              <path d="M12 13v4"></path>
-              <path d="M7 13h10"></path>
-            </svg>
-            <span>Vault</span>
-          </a>
+        <Link href="/vault"
+          className={`flex items-center p-3 rounded-lg ${isActive("/vault") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="12" cy="10" r="3"></circle>
+            <path d="M12 13v4"></path>
+            <path d="M7 13h10"></path>
+          </svg>
+          <span>Vault</span>
         </Link>
         
-        <Link href="/debt">
-          <a className={`flex items-center p-3 rounded-lg ${isActive("/debt") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
-              <path d="M22 4L12 14.01l-3-3"></path>
-            </svg>
-            <span>Debt</span>
-          </a>
+        <Link href="/debt"
+          className={`flex items-center p-3 rounded-lg ${isActive("/debt") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+            <path d="M22 4L12 14.01l-3-3"></path>
+          </svg>
+          <span>Debt</span>
         </Link>
         
-        <Link href="/bills">
-          <a className={`flex items-center p-3 rounded-lg ${isActive("/bills") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} transition-colors`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span>EMI & Bills</span>
-          </a>
+        <Link href="/bills"
+          className={`flex items-center p-3 rounded-lg ${isActive("/bills") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>EMI & Bills</span>
         </Link>
       </nav>
       

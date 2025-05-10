@@ -27,9 +27,35 @@ export async function apiRequest(
     },
   };
   
-  const res = await fetch(url, fetchOptions);
-  await throwIfResNotOk(res);
-  return res;
+  try {
+    const res = await fetch(url, fetchOptions);
+    await throwIfResNotOk(res);
+    
+    // Automatically invalidate related query caches based on the URL
+    if (options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method)) {
+      const endpoint = url.split('?')[0];
+      const basePath = endpoint.split('/').slice(0, -1).join('/') || endpoint;
+      
+      // Invalidate both the specific endpoint and any collection endpoints
+      await queryClient.invalidateQueries({ queryKey: [endpoint] });
+      await queryClient.invalidateQueries({ queryKey: [basePath] });
+      
+      // Always invalidate dashboard summary when modifying data
+      await queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      
+      // Invalidate the recent transactions if adding a transaction
+      if (endpoint.includes('/transactions') || 
+          endpoint.includes('/incomes') || 
+          endpoint.includes('/expenses')) {
+        await queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
+      }
+    }
+    
+    return res;
+  } catch (error) {
+    console.error("API request failed:", error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

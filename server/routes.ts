@@ -676,10 +676,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const bills = await storage.getUpcomingBills(userId, daysAhead);
-      res.status(200).json(bills);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+      // Safely handle errors in case the function fails
+      try {
+        const bills = await storage.getUpcomingBills(userId, daysAhead);
+        res.status(200).json(bills);
+      } catch (billError: any) {
+        console.error("Error fetching upcoming bills:", billError);
+        // Return an empty array instead of an error
+        res.status(200).json([]);
+      }
+    } catch (error: any) {
+      console.error("Error in upcoming bills endpoint:", error);
+      res.status(400).json({ message: error.message || "Error fetching upcoming bills" });
     }
   });
 

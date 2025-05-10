@@ -49,18 +49,22 @@ const IncomePage = ({ userId }: IncomePageProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: incomes, isLoading } = useQuery<Income[]>({
-    queryKey: ['/api/incomes', { userId }],
+  const { data: incomes, isLoading, refetch } = useQuery<Income[]>({
+    queryKey: ['/api/incomes'],
     queryFn: async () => {
       const res = await fetch(`/api/incomes?userId=${userId}`);
       if (!res.ok) throw new Error('Failed to fetch incomes');
       return res.json();
-    }
+    },
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   const deleteIncomeMutation = useMutation({
     mutationFn: async (incomeId: number) => {
-      return apiRequest('DELETE', `/api/incomes/${incomeId}`, null);
+      return apiRequest(`/api/incomes/${incomeId}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       toast({
@@ -68,10 +72,12 @@ const IncomePage = ({ userId }: IncomePageProps) => {
         description: "The income has been removed successfully.",
         variant: "default",
       });
+      refetch();
       queryClient.invalidateQueries({ queryKey: ['/api/incomes'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: `Failed to delete income: ${error.message}`,
@@ -399,8 +405,17 @@ const IncomePage = ({ userId }: IncomePageProps) => {
             onSuccess={() => {
               setShowAddForm(false);
               setEditingIncome(null);
+              
+              // Refresh all related data
+              refetch();
               queryClient.invalidateQueries({ queryKey: ['/api/incomes'] });
               queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
+              
+              // Force an immediate refetch for fresh data
+              setTimeout(() => {
+                refetch();
+              }, 500);
             }}
           />
         </DialogContent>
