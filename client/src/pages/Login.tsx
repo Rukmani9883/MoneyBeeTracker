@@ -33,20 +33,12 @@ export default function Login() {
         body: JSON.stringify({ username, password }),
       });
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "You have been logged in successfully",
-        });
-        navigate("/dashboard");
-      } else {
-        const data = await response.json();
-        toast({
-          title: "Error",
-          description: data.message || "Invalid credentials",
-          variant: "destructive",
-        });
-      }
+      const data = await response.json();
+      toast({
+        title: "Success",
+        description: "You have been logged in successfully",
+      });
+      navigate("/dashboard");
     } catch (error) {
       toast({
         title: "Error",

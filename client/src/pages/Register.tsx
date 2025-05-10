@@ -56,20 +56,12 @@ export default function Register() {
         body: JSON.stringify({ username, password, name, email }),
       });
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Account created successfully. You can now log in.",
-        });
-        navigate("/login");
-      } else {
-        const data = await response.json();
-        toast({
-          title: "Error",
-          description: data.message || "Failed to create account",
-          variant: "destructive",
-        });
-      }
+      const data = await response.json();
+      toast({
+        title: "Success",
+        description: "Account created successfully. You can now log in.",
+      });
+      navigate("/login");
     } catch (error) {
       toast({
         title: "Error",
