@@ -8,6 +8,8 @@ import {
   bills, Bill, InsertBill,
   transactions, Transaction, InsertTransaction
 } from "@shared/schema";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { db } from "./db";
 
 export interface IStorage {
   // Users
@@ -563,4 +565,422 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Create a DatabaseStorage implementation
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  // Income operations
+  async getIncomes(userId: number): Promise<Income[]> {
+    return db.select().from(incomes).where(eq(incomes.userId, userId));
+  }
+
+  async getIncomeById(id: number): Promise<Income | undefined> {
+    const [income] = await db.select().from(incomes).where(eq(incomes.id, id));
+    return income;
+  }
+
+  async createIncome(insertIncome: InsertIncome): Promise<Income> {
+    const [income] = await db.insert(incomes).values(insertIncome).returning();
+    return income;
+  }
+
+  async updateIncome(id: number, incomeUpdate: Partial<InsertIncome>): Promise<Income | undefined> {
+    const [updatedIncome] = await db
+      .update(incomes)
+      .set(incomeUpdate)
+      .where(eq(incomes.id, id))
+      .returning();
+    return updatedIncome;
+  }
+
+  async deleteIncome(id: number): Promise<boolean> {
+    const [deletedIncome] = await db
+      .delete(incomes)
+      .where(eq(incomes.id, id))
+      .returning();
+    return !!deletedIncome;
+  }
+
+  async getMonthlyIncome(userId: number, month: number, year: number): Promise<Income[]> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    
+    return db
+      .select()
+      .from(incomes)
+      .where(
+        and(
+          eq(incomes.userId, userId),
+          gte(incomes.date, startDate),
+          lte(incomes.date, endDate)
+        )
+      );
+  }
+
+  async getTotalIncome(userId: number, month: number, year: number): Promise<number> {
+    const monthlyIncomes = await this.getMonthlyIncome(userId, month, year);
+    return monthlyIncomes.reduce((total, income) => total + income.amount, 0);
+  }
+
+  // Expenses operations
+  async getExpenses(userId: number): Promise<Expense[]> {
+    return db.select().from(expenses).where(eq(expenses.userId, userId));
+  }
+
+  async getExpenseById(id: number): Promise<Expense | undefined> {
+    const [expense] = await db.select().from(expenses).where(eq(expenses.id, id));
+    return expense;
+  }
+
+  async createExpense(insertExpense: InsertExpense): Promise<Expense> {
+    const [expense] = await db.insert(expenses).values(insertExpense).returning();
+    return expense;
+  }
+
+  async updateExpense(id: number, expenseUpdate: Partial<InsertExpense>): Promise<Expense | undefined> {
+    const [updatedExpense] = await db
+      .update(expenses)
+      .set(expenseUpdate)
+      .where(eq(expenses.id, id))
+      .returning();
+    return updatedExpense;
+  }
+
+  async deleteExpense(id: number): Promise<boolean> {
+    const [deletedExpense] = await db
+      .delete(expenses)
+      .where(eq(expenses.id, id))
+      .returning();
+    return !!deletedExpense;
+  }
+
+  async getMonthlyExpenses(userId: number, month: number, year: number): Promise<Expense[]> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    
+    return db
+      .select()
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.userId, userId),
+          gte(expenses.date, startDate),
+          lte(expenses.date, endDate)
+        )
+      );
+  }
+
+  async getTotalExpenses(userId: number, month: number, year: number): Promise<number> {
+    const monthlyExpenses = await this.getMonthlyExpenses(userId, month, year);
+    return monthlyExpenses.reduce((total, expense) => total + expense.amount, 0);
+  }
+
+  // Savings operations
+  async getSavings(userId: number): Promise<Saving[]> {
+    return db.select().from(savings).where(eq(savings.userId, userId));
+  }
+
+  async getSavingById(id: number): Promise<Saving | undefined> {
+    const [saving] = await db.select().from(savings).where(eq(savings.id, id));
+    return saving;
+  }
+
+  async createSaving(insertSaving: InsertSaving): Promise<Saving> {
+    const [saving] = await db.insert(savings).values(insertSaving).returning();
+    return saving;
+  }
+
+  async updateSaving(id: number, savingUpdate: Partial<InsertSaving>): Promise<Saving | undefined> {
+    const [updatedSaving] = await db
+      .update(savings)
+      .set(savingUpdate)
+      .where(eq(savings.id, id))
+      .returning();
+    return updatedSaving;
+  }
+
+  async deleteSaving(id: number): Promise<boolean> {
+    const [deletedSaving] = await db
+      .delete(savings)
+      .where(eq(savings.id, id))
+      .returning();
+    return !!deletedSaving;
+  }
+
+  async getMonthlySavings(userId: number, month: string, year: number): Promise<Saving | undefined> {
+    const [saving] = await db
+      .select()
+      .from(savings)
+      .where(
+        and(
+          eq(savings.userId, userId),
+          eq(savings.month, month),
+          eq(savings.year, year)
+        )
+      );
+    return saving;
+  }
+
+  async getYearlySavings(userId: number, year: number): Promise<Saving[]> {
+    return db
+      .select()
+      .from(savings)
+      .where(
+        and(
+          eq(savings.userId, userId),
+          eq(savings.year, year)
+        )
+      );
+  }
+
+  // Vault Goals operations
+  async getVaultGoals(userId: number): Promise<VaultGoal[]> {
+    return db.select().from(vaultGoals).where(eq(vaultGoals.userId, userId));
+  }
+
+  async getVaultGoalById(id: number): Promise<VaultGoal | undefined> {
+    const [goal] = await db.select().from(vaultGoals).where(eq(vaultGoals.id, id));
+    return goal;
+  }
+
+  async createVaultGoal(insertGoal: InsertVaultGoal): Promise<VaultGoal> {
+    const [goal] = await db.insert(vaultGoals).values(insertGoal).returning();
+    return goal;
+  }
+
+  async updateVaultGoal(id: number, goalUpdate: Partial<InsertVaultGoal>): Promise<VaultGoal | undefined> {
+    const [updatedGoal] = await db
+      .update(vaultGoals)
+      .set(goalUpdate)
+      .where(eq(vaultGoals.id, id))
+      .returning();
+    return updatedGoal;
+  }
+
+  async deleteVaultGoal(id: number): Promise<boolean> {
+    const [deletedGoal] = await db
+      .delete(vaultGoals)
+      .where(eq(vaultGoals.id, id))
+      .returning();
+    return !!deletedGoal;
+  }
+
+  async addFundsToGoal(id: number, amount: number): Promise<VaultGoal | undefined> {
+    const goal = await this.getVaultGoalById(id);
+    if (!goal) return undefined;
+    
+    const updatedGoal = await this.updateVaultGoal(id, {
+      currentAmount: (goal.currentAmount || 0) + amount,
+    });
+    
+    return updatedGoal;
+  }
+
+  async withdrawFundsFromGoal(id: number, amount: number): Promise<VaultGoal | undefined> {
+    const goal = await this.getVaultGoalById(id);
+    if (!goal) return undefined;
+    
+    const currentAmount = goal.currentAmount || 0;
+    if (currentAmount < amount) return undefined;
+    
+    const updatedGoal = await this.updateVaultGoal(id, {
+      currentAmount: currentAmount - amount,
+    });
+    
+    return updatedGoal;
+  }
+
+  // Debts operations
+  async getDebts(userId: number): Promise<Debt[]> {
+    return db.select().from(debts).where(eq(debts.userId, userId));
+  }
+
+  async getDebtById(id: number): Promise<Debt | undefined> {
+    const [debt] = await db.select().from(debts).where(eq(debts.id, id));
+    return debt;
+  }
+
+  async createDebt(insertDebt: InsertDebt): Promise<Debt> {
+    const [debt] = await db.insert(debts).values(insertDebt).returning();
+    return debt;
+  }
+
+  async updateDebt(id: number, debtUpdate: Partial<InsertDebt>): Promise<Debt | undefined> {
+    const [updatedDebt] = await db
+      .update(debts)
+      .set(debtUpdate)
+      .where(eq(debts.id, id))
+      .returning();
+    return updatedDebt;
+  }
+
+  async deleteDebt(id: number): Promise<boolean> {
+    const [deletedDebt] = await db
+      .delete(debts)
+      .where(eq(debts.id, id))
+      .returning();
+    return !!deletedDebt;
+  }
+
+  async getDebtsByOwnership(userId: number, isOwedByUser: boolean): Promise<Debt[]> {
+    return db
+      .select()
+      .from(debts)
+      .where(
+        and(
+          eq(debts.userId, userId),
+          eq(debts.isOwedByUser, isOwedByUser)
+        )
+      );
+  }
+
+  async getTotalDebts(userId: number, isOwedByUser: boolean): Promise<number> {
+    const debts = await this.getDebtsByOwnership(userId, isOwedByUser);
+    return debts.reduce((total, debt) => total + debt.amount, 0);
+  }
+
+  // Bills operations
+  async getBills(userId: number): Promise<Bill[]> {
+    return db.select().from(bills).where(eq(bills.userId, userId));
+  }
+
+  async getBillById(id: number): Promise<Bill | undefined> {
+    const [bill] = await db.select().from(bills).where(eq(bills.id, id));
+    return bill;
+  }
+
+  async createBill(insertBill: InsertBill): Promise<Bill> {
+    const [bill] = await db.insert(bills).values(insertBill).returning();
+    return bill;
+  }
+
+  async updateBill(id: number, billUpdate: Partial<InsertBill>): Promise<Bill | undefined> {
+    const [updatedBill] = await db
+      .update(bills)
+      .set(billUpdate)
+      .where(eq(bills.id, id))
+      .returning();
+    return updatedBill;
+  }
+
+  async deleteBill(id: number): Promise<boolean> {
+    const [deletedBill] = await db
+      .delete(bills)
+      .where(eq(bills.id, id))
+      .returning();
+    return !!deletedBill;
+  }
+
+  async getUpcomingBills(userId: number, daysAhead: number): Promise<Bill[]> {
+    const now = new Date();
+    const future = new Date();
+    future.setDate(now.getDate() + daysAhead);
+    
+    return db
+      .select()
+      .from(bills)
+      .where(
+        and(
+          eq(bills.userId, userId),
+          eq(bills.isPaid, false),
+          gte(bills.dueDate, now),
+          lte(bills.dueDate, future)
+        )
+      )
+      .orderBy(bills.dueDate);
+  }
+
+  async markBillAsPaid(id: number): Promise<Bill | undefined> {
+    return this.updateBill(id, { isPaid: true });
+  }
+
+  async getUnpaidBills(userId: number): Promise<Bill[]> {
+    return db
+      .select()
+      .from(bills)
+      .where(
+        and(
+          eq(bills.userId, userId),
+          eq(bills.isPaid, false)
+        )
+      )
+      .orderBy(bills.dueDate);
+  }
+
+  // Transactions operations
+  async getTransactions(userId: number): Promise<Transaction[]> {
+    return db.select().from(transactions).where(eq(transactions.userId, userId));
+  }
+
+  async getTransactionById(id: number): Promise<Transaction | undefined> {
+    const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id));
+    return transaction;
+  }
+
+  async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    const [transaction] = await db.insert(transactions).values(insertTransaction).returning();
+    return transaction;
+  }
+
+  async getRecentTransactions(userId: number, limit: number): Promise<Transaction[]> {
+    return db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.date))
+      .limit(limit);
+  }
+
+  async getMonthlyTransactions(userId: number, month: number, year: number): Promise<Transaction[]> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    
+    return db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          gte(transactions.date, startDate),
+          lte(transactions.date, endDate)
+        )
+      );
+  }
+
+  // Clear all data
+  async clearAllData(userId: number): Promise<boolean> {
+    try {
+      // Delete all user data in a transaction
+      await db.transaction(async (tx) => {
+        await tx.delete(incomes).where(eq(incomes.userId, userId));
+        await tx.delete(expenses).where(eq(expenses.userId, userId));
+        await tx.delete(savings).where(eq(savings.userId, userId));
+        await tx.delete(vaultGoals).where(eq(vaultGoals.userId, userId));
+        await tx.delete(debts).where(eq(debts.userId, userId));
+        await tx.delete(bills).where(eq(bills.userId, userId));
+        await tx.delete(transactions).where(eq(transactions.userId, userId));
+      });
+      return true;
+    } catch (error) {
+      console.error("Error clearing user data:", error);
+      return false;
+    }
+  }
+}
+
+// Use Database storage instead of memory storage
+export const storage = new DatabaseStorage();

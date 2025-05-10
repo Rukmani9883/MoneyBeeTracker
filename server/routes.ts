@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -12,8 +12,39 @@ import {
   insertTransactionSchema
 } from "@shared/schema";
 import { formatISO } from "date-fns";
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import { pool } from './db';
+
+// Authentication middleware
+const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+  if (req.session.userId) {
+    next();
+  } else {
+    res.status(401).json({ message: 'Unauthorized' });
+  }
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up session middleware
+  const PgSession = connectPgSimple(session);
+  app.use(
+    session({
+      store: new PgSession({
+        pool,
+        tableName: 'user_sessions',
+        createTableIfMissing: true,
+      }),
+      secret: process.env.SESSION_SECRET || 'money-bee-secret',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      },
+    })
+  );
+
   // prefix all routes with /api
   const api = "/api";
 
@@ -27,7 +58,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
       
-      const user = await storage.createUser(userData);
+      // Hash password
+      const bcrypt = await import('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(userData.password, salt);
+      
+      // Create user with hashed password
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword
+      });
+      
       // Don't return password in response
       const { password, ...userWithoutPassword } = user;
       
@@ -42,9 +83,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username, password } = req.body;
       const user = await storage.getUserByUsername(username);
       
-      if (!user || user.password !== password) {
+      if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
+      
+      // Compare hashed password
+      const bcrypt = await import('bcryptjs');
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Set user in session
+      req.session.userId = user.id;
       
       // Don't return password in response
       const { password: userPassword, ...userWithoutPassword } = user;
@@ -52,6 +104,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(userWithoutPassword);
     } catch (error) {
       res.status(400).json({ message: error.message });
+    }
+  });
+  
+  app.get(`${api}/auth/user`, isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password in response
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+  
+  app.post(`${api}/auth/logout`, (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.clearCookie('connect.sid');
+      res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
+  
+  // Add reset data route
+  app.post(`${api}/reset-data`, isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId;
+      const success = await storage.clearAllData(userId);
+      
+      if (success) {
+        res.status(200).json({ message: "All data has been reset successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to reset data" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred while resetting data" });
     }
   });
 
