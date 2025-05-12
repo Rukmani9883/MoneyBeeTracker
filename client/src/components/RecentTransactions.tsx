@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Transaction } from "@shared/schema";
 import { format } from "date-fns";
+import { getCategoryIcon } from "./CategoryIcons";
 
 interface RecentTransactionsProps {
   userId: number;
@@ -55,52 +56,7 @@ const RecentTransactions = ({ userId, limit = 4 }: RecentTransactionsProps) => {
     return { icon, color };
   };
   
-  // Function to determine category icon
-  const getCategoryIcon = (category: string) => {
-    switch (category?.toLowerCase()) {
-      case 'food':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8h1a4 4 0 010 8h-1"></path>
-            <path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"></path>
-            <line x1="6" y1="1" x2="6" y2="4"></line>
-            <line x1="10" y1="1" x2="10" y2="4"></line>
-            <line x1="14" y1="1" x2="14" y2="4"></line>
-          </svg>
-        );
-      case 'entertainment':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="23 7 16 12 23 17 23 7"></polygon>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-          </svg>
-        );
-      case 'dining':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"></path>
-            <path d="M7 2v20"></path>
-            <path d="M21 15V2"></path>
-            <path d="M18 15a3 3 0 013 3v2a3 3 0 01-3 3h-3a3 3 0 01-3-3v-2a3 3 0 013-3h3z"></path>
-          </svg>
-        );
-      case 'employment':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
-          </svg>
-        );
-      default:
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-        );
-    }
-  };
+
 
   if (isLoading) {
     return (
