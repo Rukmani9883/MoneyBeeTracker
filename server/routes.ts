@@ -242,19 +242,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Add reset data route
+  // Enhanced reset data route with improved logging and error handling
   app.post(`${api}/reset-data`, isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId;
+      console.log(`Attempting to reset all data for user ID: ${userId}`);
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        console.error(`Reset data failed: User ID ${userId} not found`);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // First check if there is data to delete
+      const beforeIncomes = await storage.getIncomes(userId);
+      const beforeExpenses = await storage.getExpenses(userId);
+      const beforeGoals = await storage.getVaultGoals(userId);
+      const beforeTransactions = await storage.getRecentTransactions(userId, 1000);
+      
+      console.log(`Before reset - Data counts for user ${userId}:
+        Incomes: ${beforeIncomes.length}
+        Expenses: ${beforeExpenses.length}
+        Goals: ${beforeGoals.length}
+        Transactions: ${beforeTransactions.length}
+      `);
+      
+      // Perform the reset operation
       const success = await storage.clearAllData(userId);
       
       if (success) {
-        res.status(200).json({ message: "All data has been reset successfully" });
+        // Verify data was actually cleared
+        const afterIncomes = await storage.getIncomes(userId);
+        const afterExpenses = await storage.getExpenses(userId);
+        const afterGoals = await storage.getVaultGoals(userId);
+        const afterTransactions = await storage.getRecentTransactions(userId, 1000);
+        
+        console.log(`After reset - Data counts for user ${userId}:
+          Incomes: ${afterIncomes.length}
+          Expenses: ${afterExpenses.length}
+          Goals: ${afterGoals.length}
+          Transactions: ${afterTransactions.length}
+        `);
+        
+        // Confirm all data is actually cleared
+        if (afterIncomes.length === 0 && 
+            afterExpenses.length === 0 && 
+            afterGoals.length === 0 && 
+            afterTransactions.length === 0) {
+          console.log(`All data successfully cleared for user ${userId}`);
+          return res.status(200).json({ message: "All data has been reset successfully" });
+        } else {
+          console.error(`Reset data partially failed for user ${userId}: Some data remains`);
+          return res.status(500).json({ message: "Data reset partially completed. Some data may still be present." });
+        }
       } else {
-        res.status(500).json({ message: "Failed to reset data" });
+        console.error(`Reset data failed for user ${userId}: clearAllData returned false`);
+        return res.status(500).json({ message: "Failed to reset data" });
       }
     } catch (error) {
-      res.status(500).json({ message: "An error occurred while resetting data" });
+      console.error(`Error in reset-data endpoint:`, error);
+      return res.status(500).json({ message: "An error occurred while resetting data" });
     }
   });
 

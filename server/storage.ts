@@ -8,7 +8,7 @@ import {
   bills, Bill, InsertBill,
   transactions, Transaction, InsertTransaction
 } from "@shared/schema";
-import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, asc, count } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -1478,19 +1478,105 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  // Clear all data
+  // Enhanced clearAllData method for thorough data cleaning
   async clearAllData(userId: number): Promise<boolean> {
     try {
+      console.log(`Starting clearAllData for user ${userId}`);
+      
+      // First verify what data exists for this user
+      const incomeCount = await db
+        .select({ count: count() })
+        .from(incomes)
+        .where(eq(incomes.userId, userId));
+      
+      const expenseCount = await db
+        .select({ count: count() })
+        .from(expenses)
+        .where(eq(expenses.userId, userId));
+      
+      const savingsCount = await db
+        .select({ count: count() })
+        .from(savings)
+        .where(eq(savings.userId, userId));
+      
+      const goalsCount = await db
+        .select({ count: count() })
+        .from(vaultGoals)
+        .where(eq(vaultGoals.userId, userId));
+      
+      const debtsCount = await db
+        .select({ count: count() })
+        .from(debts)
+        .where(eq(debts.userId, userId));
+      
+      const billsCount = await db
+        .select({ count: count() })
+        .from(bills)
+        .where(eq(bills.userId, userId));
+      
+      const transactionsCount = await db
+        .select({ count: count() })
+        .from(transactions)
+        .where(eq(transactions.userId, userId));
+      
+      console.log(`Before deletion - Counts for user ${userId}:
+        Incomes: ${incomeCount[0]?.count || 0}
+        Expenses: ${expenseCount[0]?.count || 0}
+        Savings: ${savingsCount[0]?.count || 0}
+        Goals: ${goalsCount[0]?.count || 0}
+        Debts: ${debtsCount[0]?.count || 0}
+        Bills: ${billsCount[0]?.count || 0}
+        Transactions: ${transactionsCount[0]?.count || 0}
+      `);
+      
       // Delete all user data in a transaction
+      // Starting with transactions first to avoid foreign key issues
       await db.transaction(async (tx) => {
-        await tx.delete(incomes).where(eq(incomes.userId, userId));
-        await tx.delete(expenses).where(eq(expenses.userId, userId));
-        await tx.delete(savings).where(eq(savings.userId, userId));
-        await tx.delete(vaultGoals).where(eq(vaultGoals.userId, userId));
-        await tx.delete(debts).where(eq(debts.userId, userId));
-        await tx.delete(bills).where(eq(bills.userId, userId));
+        // Delete in specific order to prevent constraint issues
+        console.log(`Deleting transactions for user ${userId}`);
         await tx.delete(transactions).where(eq(transactions.userId, userId));
+        
+        console.log(`Deleting incomes for user ${userId}`);
+        await tx.delete(incomes).where(eq(incomes.userId, userId));
+        
+        console.log(`Deleting expenses for user ${userId}`);
+        await tx.delete(expenses).where(eq(expenses.userId, userId));
+        
+        console.log(`Deleting savings for user ${userId}`);
+        await tx.delete(savings).where(eq(savings.userId, userId));
+        
+        console.log(`Deleting vault goals for user ${userId}`);
+        await tx.delete(vaultGoals).where(eq(vaultGoals.userId, userId));
+        
+        console.log(`Deleting debts for user ${userId}`);
+        await tx.delete(debts).where(eq(debts.userId, userId));
+        
+        console.log(`Deleting bills for user ${userId}`);
+        await tx.delete(bills).where(eq(bills.userId, userId));
       });
+      
+      // Verify deletion was successful
+      const afterIncomeCount = await db
+        .select({ count: count() })
+        .from(incomes)
+        .where(eq(incomes.userId, userId));
+      
+      const afterTransactionsCount = await db
+        .select({ count: count() })
+        .from(transactions)
+        .where(eq(transactions.userId, userId));
+      
+      const afterGoalsCount = await db
+        .select({ count: count() })
+        .from(vaultGoals)
+        .where(eq(vaultGoals.userId, userId));
+      
+      console.log(`After deletion - Counts for user ${userId}:
+        Incomes: ${afterIncomeCount[0]?.count || 0}
+        Transactions: ${afterTransactionsCount[0]?.count || 0}
+        Goals: ${afterGoalsCount[0]?.count || 0}
+      `);
+      
       return true;
     } catch (error) {
       console.error("Error clearing user data:", error);
