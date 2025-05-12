@@ -39,14 +39,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     session({
       store: new PgSession({
         pool,
-        tableName: 'user_sessions', // Changed from 'sessions' to 'user_sessions'
+        tableName: 'user_sessions',
         createTableIfMissing: true,
       }),
+      name: 'moneybee.sid', 
       secret: process.env.SESSION_SECRET || 'money-bee-secret',
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Set to false for development since we're not using HTTPS
+        httpOnly: true,
+        sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       },
     })
