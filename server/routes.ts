@@ -16,6 +16,13 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import { pool } from './db';
 
+// Extend Express Request type to include our session data
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+  }
+}
+
 // Authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   if (req.session.userId) {
@@ -1056,6 +1063,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "Demo data created successfully" });
     } catch (error) {
       res.status(400).json({ message: error.message });
+    }
+  });
+  
+  // Endpoint to reset/clear all user data
+  app.post('/api/reset-data', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId || 0;
+      
+      const success = await storage.clearAllData(userId);
+      
+      if (success) {
+        res.status(200).json({ message: "All user data has been cleared successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to clear user data" });
+      }
+    } catch (error) {
+      console.error("Error clearing user data:", error);
+      res.status(500).json({ message: "An error occurred while clearing data" });
     }
   });
 

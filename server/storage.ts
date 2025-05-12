@@ -78,6 +78,9 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getRecentTransactions(userId: number, limit: number): Promise<Transaction[]>;
   getMonthlyTransactions(userId: number, month: number, year: number): Promise<Transaction[]>;
+  
+  // Data Management
+  clearAllData(userId: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
