@@ -18,6 +18,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import TransactionForm from "@/components/TransactionForm";
 import DateSelector from "@/components/DateSelector";
+import { useAnimation } from "@/components/animations/AnimationProvider";
 import { 
   Dialog, 
   DialogContent, 
