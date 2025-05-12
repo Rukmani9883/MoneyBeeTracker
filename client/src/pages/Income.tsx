@@ -52,6 +52,7 @@ const IncomePage = ({ userId }: IncomePageProps) => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { showAnimation } = useAnimation();
 
   const { data: incomes, isLoading, refetch } = useQuery<Income[]>({
     queryKey: ['/api/incomes', selectedMonth, selectedYear],
@@ -70,17 +71,25 @@ const IncomePage = ({ userId }: IncomePageProps) => {
   };
 
   const deleteIncomeMutation = useMutation({
-    mutationFn: async (incomeId: number) => {
-      return apiRequest(`/api/incomes/${incomeId}`, {
+    mutationFn: async (income: Income) => {
+      return apiRequest(`/api/incomes/${income.id}`, {
         method: 'DELETE'
       });
     },
-    onSuccess: () => {
+    onSuccess: (_data, income) => {
       toast({
         title: "Income deleted",
         description: "The income has been removed successfully.",
         variant: "default",
       });
+      
+      // Show delete animation with the amount
+      showAnimation({
+        type: 'delete',
+        amount: income.amount,
+        duration: 2000
+      });
+      
       refetch();
       queryClient.invalidateQueries({ queryKey: ['/api/incomes'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
@@ -91,6 +100,12 @@ const IncomePage = ({ userId }: IncomePageProps) => {
         title: "Error",
         description: `Failed to delete income: ${error.message}`,
         variant: "destructive",
+      });
+      
+      // Show error animation
+      showAnimation({
+        type: 'error',
+        duration: 2000
       });
     },
   });
@@ -116,8 +131,11 @@ const IncomePage = ({ userId }: IncomePageProps) => {
   const COLORS = ['#4CAF50', '#2196F3', '#FFD700', '#FF9800', '#9C27B0'];
 
   const handleDeleteConfirm = () => {
-    if (deletingIncomeId) {
-      deleteIncomeMutation.mutate(deletingIncomeId);
+    if (deletingIncomeId && incomes) {
+      const incomeToDelete = incomes.find(income => income.id === deletingIncomeId);
+      if (incomeToDelete) {
+        deleteIncomeMutation.mutate(incomeToDelete);
+      }
       setDeletingIncomeId(null);
     }
   };
