@@ -67,6 +67,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             amount={summary?.totalExpenses || 0}
             icon={<ShoppingIcon color="text-[#F44336]" />}
             iconColor=""
+            linkTo="/expenses"
           />
           
           <SummaryCard
@@ -74,6 +75,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             amount={summary?.savings || 0}
             icon={<InvestmentIcon color="text-[#4CAF50]" />}
             iconColor=""
+            linkTo="/savings"
           />
           
           <SummaryCard
@@ -81,6 +83,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             amount={summary?.totalVault || 0}
             icon={<InvestmentIcon color="text-[#FFD700]" />}
             iconColor=""
+            linkTo="/vault"
           />
           
           <SummaryCard
@@ -88,6 +91,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             amount={summary?.totalDebts || 0}
             icon={<OtherIcon color="text-[#FF9800]" />}
             iconColor=""
+            linkTo="/debt"
           />
           
           <SummaryCard
@@ -95,6 +99,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             amount={summary?.totalBills || 0}
             icon={<UtilitiesIcon color="text-[#2196F3]" />}
             iconColor=""
+            linkTo="/bills"
           />
         </div>
 
