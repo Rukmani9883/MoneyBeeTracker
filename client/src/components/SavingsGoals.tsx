@@ -50,19 +50,8 @@ const SavingsGoals = ({ userId }: SavingsGoalsProps) => {
     };
   }, [refreshGoals]);
   
-  // Create demo data if none exists
-  useEffect(() => {
-    if (goals?.length === 0) {
-      apiRequest(`/api/demo-data?userId=${userId}`, {
-        method: 'POST',
-        body: JSON.stringify({})
-      })
-        .then(() => {
-          refreshGoals();
-        })
-        .catch(console.error);
-    }
-  }, [goals, userId, refreshGoals]);
+  // No longer automatically creating demo data
+  // This was removed to ensure reset data functionality works properly
 
   if (isLoading) {
     return (
