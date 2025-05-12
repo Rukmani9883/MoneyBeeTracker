@@ -6,13 +6,23 @@ import { getCategoryIcon } from "./CategoryIcons";
 interface RecentTransactionsProps {
   userId: number;
   limit?: number;
+  month?: number;
+  year?: number;
 }
 
-const RecentTransactions = ({ userId, limit = 4 }: RecentTransactionsProps) => {
+const RecentTransactions = ({ userId, limit = 4, month, year }: RecentTransactionsProps) => {
+  // Get current month and year if not provided
+  const currentDate = new Date();
+  const selectedMonth = month !== undefined ? month : currentDate.getMonth();
+  const selectedYear = year !== undefined ? year : currentDate.getFullYear();
+  
+  // For API call we need to add 1 to month because JS months are 0-based
+  const apiMonth = selectedMonth + 1;
+  
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
-    queryKey: ['/api/transactions/recent', { userId, limit }],
+    queryKey: ['/api/transactions/monthly', { userId, month: apiMonth, year: selectedYear, limit }],
     queryFn: async () => {
-      const res = await fetch(`/api/transactions/recent?userId=${userId}&limit=${limit}`);
+      const res = await fetch(`/api/transactions/monthly?userId=${userId}&month=${apiMonth}&year=${selectedYear}&limit=${limit}`);
       if (!res.ok) throw new Error('Failed to fetch transactions');
       return res.json();
     }
