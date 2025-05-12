@@ -28,21 +28,31 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const response = await apiRequest("/api/auth/login", {
+      // Use fetch directly for better error handling
+      const response = await fetch("/api/auth/login", {
         method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ username, password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to login");
+      }
+      
       toast({
         title: "Success",
         description: "You have been logged in successfully",
       });
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {

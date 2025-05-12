@@ -51,21 +51,31 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const response = await apiRequest("/api/auth/register", {
+      // Use fetch directly for better error handling
+      const response = await fetch("/api/auth/register", {
         method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ username, password, name, email }),
+        credentials: 'include',
       });
 
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to register");
+      }
+      
       toast({
         title: "Success",
         description: "Account created successfully. You can now log in.",
       });
       navigate("/login");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
