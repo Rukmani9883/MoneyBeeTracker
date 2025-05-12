@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/utils";
 import ProgressBar from "@/components/ProgressBar";
 import { useToast } from "@/hooks/use-toast";
+import DateSelector from "@/components/DateSelector";
 import { 
   Dialog, 
   DialogContent, 
@@ -37,12 +38,14 @@ interface SavingsPageProps {
 const SavingsPage = ({ userId }: SavingsPageProps) => {
   const [isSettingGoal, setIsSettingGoal] = useState(false);
   const [goalAmount, setGoalAmount] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Get total income, expenses, and savings from summary
   const { data: summary, isLoading: isSummaryLoading } = useQuery({
-    queryKey: ['/api/dashboard/summary', { userId }],
+    queryKey: ['/api/dashboard/summary', userId],
     queryFn: async () => {
       const res = await fetch(`/api/dashboard/summary?userId=${userId}`);
       if (!res.ok) throw new Error('Failed to fetch dashboard summary');
@@ -50,15 +53,20 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
     }
   });
 
-  // Get savings history
+  // Get savings history with date filter
   const { data: savings, isLoading: isSavingsLoading } = useQuery<Saving[]>({
-    queryKey: ['/api/savings', { userId }],
+    queryKey: ['/api/savings', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/savings?userId=${userId}`);
+      const res = await fetch(`/api/savings?userId=${userId}&month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch savings history');
       return res.json();
     }
   });
+  
+  const handleDateChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
 
   // Set savings goal mutation
   const setSavingsGoalMutation = useMutation({
@@ -173,6 +181,11 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
       <Header title="Savings" userId={userId} />
       
       <div className="p-4 md:p-6 fade-in">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-white">Filter by Period</h2>
+          <DateSelector onDateChange={handleDateChange} />
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <Card className="bg-[#1E1E1E] border-[#2D2D2D] col-span-1 lg:col-span-2">
             <CardHeader>
