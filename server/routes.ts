@@ -14,7 +14,8 @@ import {
 import { formatISO } from "date-fns";
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
-import { pool } from './db';
+import { pool, db } from './db';
+import { sql } from 'drizzle-orm';
 
 // Extend Express Request type to include our session data
 declare module 'express-session' {
@@ -25,23 +26,46 @@ declare module 'express-session' {
 
 // Authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (req.session.userId) {
+  console.log("Authentication check - Session:", req.session);
+  console.log("Authentication check - User ID:", req.session.userId);
+  
+  if (req.session && req.session.userId) {
+    console.log("User authenticated:", req.session.userId);
     next();
   } else {
+    console.log("Authentication failed - no valid session");
     res.status(401).json({ message: 'Unauthorized' });
   }
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up session middleware
+  console.log("Setting up session middleware");
+  
+  // Ensure the session table exists
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        sid VARCHAR NOT NULL PRIMARY KEY,
+        sess JSON NOT NULL,
+        expire TIMESTAMP(6) NOT NULL
+      )
+    `);
+    console.log("Session table created/verified");
+  } catch (err) {
+    console.error("Error creating session table:", err);
+  }
+  
   const PgSession = connectPgSimple(session);
+  const sessionStore = new PgSession({
+    pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+  });
+  
   app.use(
     session({
-      store: new PgSession({
-        pool,
-        tableName: 'user_sessions',
-        createTableIfMissing: true,
-      }),
+      store: sessionStore,
       name: 'moneybee.sid', 
       secret: process.env.SESSION_SECRET || 'money-bee-secret',
       resave: false,
@@ -90,30 +114,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/auth/login`, async (req: Request, res: Response) => {
     try {
+      console.log("Login attempt with username:", req.body.username);
+      
       const { username, password } = req.body;
       const user = await storage.getUserByUsername(username);
       
       if (!user) {
+        console.log("User not found:", username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
+      
+      console.log("User found:", user.id, user.username);
       
       // Compare hashed password
       const bcrypt = await import('bcryptjs');
       const isPasswordValid = await bcrypt.compare(password, user.password);
       
       if (!isPasswordValid) {
+        console.log("Invalid password for user:", username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
       // Set user in session
       req.session.userId = user.id;
+      console.log("Setting session user ID:", user.id);
       
-      // Don't return password in response
-      const { password: userPassword, ...userWithoutPassword } = user;
-      
-      res.status(200).json(userWithoutPassword);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+      // Save session explicitly to ensure it's stored before responding
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Failed to save session" });
+        }
+        
+        // Don't return password in response
+        const { password: userPassword, ...userWithoutPassword } = user;
+        
+        console.log("Login successful for user:", username);
+        res.status(200).json(userWithoutPassword);
+      });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(400).json({ message: error.message || "Login failed" });
     }
   });
   
