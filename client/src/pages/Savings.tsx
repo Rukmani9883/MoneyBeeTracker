@@ -74,7 +74,10 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
   // Set savings goal mutation
   const setSavingsGoalMutation = useMutation({
     mutationFn: async (data: { userId: number, month: string, year: number, amount: number, goal: number }) => {
-      return apiRequest('POST', `/api/savings`, data);
+      return apiRequest(`/api/savings`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       toast({

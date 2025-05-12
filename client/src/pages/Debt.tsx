@@ -80,7 +80,9 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   // Delete debt mutation
   const deleteDebtMutation = useMutation({
     mutationFn: async (debtId: number) => {
-      return apiRequest('DELETE', `/api/debts/${debtId}`, null);
+      return apiRequest(`/api/debts/${debtId}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       toast({
