@@ -14,6 +14,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { AnimationProvider } from "@/components/animations/AnimationProvider";
 
 // Protected route component
 const ProtectedRoute = ({ component: Component, ...rest }: any) => {
