@@ -366,18 +366,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if month and year are provided for filtering
-      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : undefined;
+      // Convert to 0-based month if provided, or use -1 as a sentinel
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) - 1 : -1;
       const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
       
       let savings;
       
-      if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
+      // If both month and year are valid
+      if (month >= 0 && month < 12 && year !== undefined && !isNaN(year)) {
         // Get the month name for filtering
         const monthNames = ["January", "February", "March", "April", "May", "June", 
                           "July", "August", "September", "October", "November", "December"];
         
         // Filter savings by month and year
         savings = await storage.getSavings(userId);
+        
+        // Debug what's being filtered
+        console.log("Filtering savings: looking for", monthNames[month], year);
+        console.log("Available savings:", savings.map(s => ({ month: s.month, year: s.year })));
+        
         savings = savings.filter(saving => 
           saving.month === monthNames[month] && saving.year === year
         );
@@ -387,8 +394,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(200).json(savings);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: any) {
+      console.error("Error fetching savings:", error);
+      res.status(400).json({ message: error.message || "Error fetching savings data" });
     }
   });
 
@@ -751,10 +759,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get(`${api}/bills/upcoming`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      // Get current date values if parameters are not provided
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // 1-indexed month
+      
+      // Parse parameters with fallbacks
+      let userId = NaN;
+      try {
+        userId = parseInt(req.query.userId as string);
+      } catch (e) {
+        // Will be caught by isNaN check
+      }
+      
       const daysAhead = parseInt(req.query.daysAhead as string) || 30;
-      const month = req.query.month ? parseInt(req.query.month as string) : undefined;
-      const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+      
+      // Default to current month/year if values are missing or invalid
+      let month = currentMonth;
+      let year = currentYear;
+      
+      if (req.query.month) {
+        const parsedMonth = parseInt(req.query.month as string);
+        if (!isNaN(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
+          month = parsedMonth;
+        }
+      }
+      
+      if (req.query.year) {
+        const parsedYear = parseInt(req.query.year as string);
+        if (!isNaN(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100) {
+          year = parsedYear;
+        }
+      }
       
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
@@ -762,16 +798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Safely handle errors in case the function fails
       try {
-        let bills;
-        
-        if (month !== undefined && year !== undefined) {
-          // If month and year are provided, get bills for that month
-          bills = await storage.getBillsForMonth(userId, month, year);
-        } else {
-          // Otherwise use the traditional days ahead approach
-          bills = await storage.getUpcomingBills(userId, daysAhead);
-        }
-        
+        let bills = await storage.getBillsForMonth(userId, month, year);
         res.status(200).json(bills);
       } catch (billError: any) {
         console.error("Error fetching upcoming bills:", billError);
@@ -780,7 +807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       console.error("Error in upcoming bills endpoint:", error);
-      res.status(400).json({ message: error.message || "Error fetching upcoming bills" });
+      res.status(400).json({ message: "Error fetching upcoming bills" });
     }
   });
 
