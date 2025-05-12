@@ -8,6 +8,7 @@ import RecentTransactions from "@/components/RecentTransactions";
 import UpcomingBills from "@/components/UpcomingBills";
 import DateSelector from "@/components/DateSelector";
 import { ResetDataButton } from "@/components/ResetDataButton";
+import { ClearInitialDataButton } from "@/components/ClearInitialDataButton";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   SalaryIcon, 

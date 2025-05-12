@@ -22,6 +22,7 @@ import { Loader2 } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
 import { addMonths, format } from "date-fns";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 interface DebtFormProps {
   userId: number;
@@ -130,7 +131,10 @@ const DebtForm = ({
       
       if (debt) {
         // Update existing debt
-        await apiRequest("PUT", `/api/debts/${debt.id}`, debtData);
+        await apiRequest(`/api/debts/${debt.id}`, {
+          method: "PUT",
+          body: JSON.stringify(debtData)
+        });
         toast({
           title: "Success",
           description: "Debt updated successfully.",
@@ -138,13 +142,19 @@ const DebtForm = ({
         });
       } else {
         // Create new debt
-        await apiRequest("POST", "/api/debts", debtData);
+        await apiRequest("/api/debts", {
+          method: "POST",
+          body: JSON.stringify(debtData)
+        });
         toast({
           title: "Success",
           description: "Debt added successfully.",
           variant: "default",
         });
       }
+      
+      // Notify all components that financial data has changed
+      notifyFinancialDataChanged();
       
       if (onSuccess) {
         onSuccess();
