@@ -44,22 +44,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Ensure the session table exists
   try {
+    // Connect to the existing sessions table
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS user_sessions (
-        sid VARCHAR NOT NULL PRIMARY KEY,
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid VARCHAR(255) NOT NULL PRIMARY KEY,
         sess JSON NOT NULL,
         expire TIMESTAMP(6) NOT NULL
       )
     `);
     console.log("Session table created/verified");
+    
+    // Check if there's any data in the sessions table
+    const result = await db.execute(sql`SELECT COUNT(*) FROM sessions`);
+    console.log("Current session count:", result.rows?.[0]?.count || 0);
   } catch (err) {
-    console.error("Error creating session table:", err);
+    console.error("Error verifying session table:", err);
   }
   
   const PgSession = connectPgSimple(session);
   const sessionStore = new PgSession({
     pool,
-    tableName: 'user_sessions',
+    tableName: 'sessions', // Use the existing sessions table
     createTableIfMissing: true,
   });
   
