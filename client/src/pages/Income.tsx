@@ -94,8 +94,10 @@ const IncomePage = ({ userId }: IncomePageProps) => {
       });
       
       refetch();
+      // Invalidate all related queries to ensure UI is in sync with database
       queryClient.invalidateQueries({ queryKey: ['/api/incomes'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
     },
     onError: (error: any) => {

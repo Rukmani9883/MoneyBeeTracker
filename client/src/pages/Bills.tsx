@@ -109,6 +109,8 @@ const BillsPage = ({ userId }: BillsPageProps) => {
       queryClient.invalidateQueries({ queryKey: ['/api/bills'] });
       queryClient.invalidateQueries({ queryKey: ['/api/bills/upcoming'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
       setDeletingBillId(null);
     },
     onError: (error) => {

@@ -92,6 +92,8 @@ const DebtPage = ({ userId }: DebtPageProps) => {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
       setDeletingDebtId(null);
     },
     onError: (error) => {

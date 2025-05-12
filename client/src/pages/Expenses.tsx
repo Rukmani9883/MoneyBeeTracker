@@ -83,6 +83,8 @@ const ExpensesPage = ({ userId }: ExpensesPageProps) => {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
     },
     onError: (error) => {
       toast({
