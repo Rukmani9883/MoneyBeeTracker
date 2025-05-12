@@ -187,7 +187,36 @@ export class MemStorage implements IStorage {
   }
 
   async deleteIncome(id: number): Promise<boolean> {
+    const income = this.incomes.get(id);
+    if (!income) return false;
+
+    // Delete all related transactions
+    await this.deleteRelatedTransactions(income.userId, "income", income.name);
+    
     return this.incomes.delete(id);
+  }
+  
+  // Helper method to delete transactions related to an income/expense/debt record
+  private async deleteRelatedTransactions(
+    userId: number, 
+    type: string, 
+    description: string
+  ): Promise<void> {
+    const transactionsToRemove: number[] = [];
+    
+    this.transactions.forEach((transaction, transactionId) => {
+      if (
+        transaction.userId === userId &&
+        transaction.type === type &&
+        transaction.description === description
+      ) {
+        transactionsToRemove.push(transactionId);
+      }
+    });
+    
+    for (const transactionId of transactionsToRemove) {
+      this.transactions.delete(transactionId);
+    }
   }
 
   async getMonthlyIncome(userId: number, month: number, year: number): Promise<Income[]> {
@@ -246,6 +275,12 @@ export class MemStorage implements IStorage {
   }
 
   async deleteExpense(id: number): Promise<boolean> {
+    const expense = this.expenses.get(id);
+    if (!expense) return false;
+
+    // Delete all related transactions
+    await this.deleteRelatedTransactions(expense.userId, "expense", expense.name);
+    
     return this.expenses.delete(id);
   }
 
