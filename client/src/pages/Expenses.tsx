@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import TransactionForm from "@/components/TransactionForm";
+import DateSelector from "@/components/DateSelector";
 import { 
   Dialog, 
   DialogContent, 
@@ -46,17 +47,24 @@ const ExpensesPage = ({ userId }: ExpensesPageProps) => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpenseId, setDeletingExpenseId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: expenses, isLoading } = useQuery<Expense[]>({
-    queryKey: ['/api/expenses', { userId }],
+    queryKey: ['/api/expenses', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/expenses?userId=${userId}`);
+      const res = await fetch(`/api/expenses?userId=${userId}&month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch expenses');
       return res.json();
     }
   });
+  
+  const handleDateChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
 
   const deleteExpenseMutation = useMutation({
     mutationFn: async (expenseId: number) => {
@@ -128,6 +136,11 @@ const ExpensesPage = ({ userId }: ExpensesPageProps) => {
       <Header title="Expenses" userId={userId} />
       
       <div className="p-4 md:p-6 fade-in">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-white">Filter by Period</h2>
+          <DateSelector onDateChange={handleDateChange} />
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <Card className="bg-[#1E1E1E] border-[#2D2D2D] col-span-1 lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between pb-2">

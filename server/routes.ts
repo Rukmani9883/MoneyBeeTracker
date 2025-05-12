@@ -159,7 +159,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const incomes = await storage.getIncomes(userId);
+      // Check if month and year are provided for filtering
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : undefined;
+      const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
+      
+      let incomes;
+      
+      if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
+        // Filter incomes by month and year
+        incomes = await storage.getMonthlyIncome(userId, month, year);
+      } else {
+        // Get all incomes if no date filter
+        incomes = await storage.getIncomes(userId);
+      }
+      
       res.status(200).json(incomes);
     } catch (error) {
       res.status(400).json({ message: error.message });
