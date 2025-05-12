@@ -8,7 +8,7 @@ import {
   bills, Bill, InsertBill,
   transactions, Transaction, InsertTransaction
 } from "@shared/schema";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, asc } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -1199,6 +1199,24 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(bills.dueDate);
+  }
+  
+  async getBillsForMonth(userId: number, month: number, year: number): Promise<Bill[]> {
+    // Create date range for the specified month
+    const startDate = new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
+    const endDate = new Date(year, month, 0); // Last day of the month
+    
+    return db
+      .select()
+      .from(bills)
+      .where(
+        and(
+          eq(bills.userId, userId),
+          gte(bills.dueDate, startDate),
+          lte(bills.dueDate, endDate)
+        )
+      )
+      .orderBy(asc(bills.dueDate));
   }
 
   // Transactions operations
