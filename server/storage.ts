@@ -590,6 +590,21 @@ export class MemStorage implements IStorage {
       )
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   }
+  
+  async getBillsForMonth(userId: number, month: number, year: number): Promise<Bill[]> {
+    // Create date range for the specified month (month is 1-indexed in params but 0-indexed in JS Date)
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0); // Last day of the month
+    
+    return Array.from(this.bills.values())
+      .filter(bill => {
+        const dueDate = new Date(bill.dueDate);
+        return bill.userId === userId && 
+               dueDate >= startDate && 
+               dueDate <= endDate;
+      })
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  }
 
   // Transaction methods
   async getTransactions(userId: number): Promise<Transaction[]> {
@@ -615,14 +630,18 @@ export class MemStorage implements IStorage {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, limit);
   }
-
+  
   async getMonthlyTransactions(userId: number, month: number, year: number): Promise<Transaction[]> {
+    // Create date range for the specified month (month is 1-indexed in params but 0-indexed in JS Date)
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0); // Last day of the month
+    
     return Array.from(this.transactions.values())
       .filter(transaction => {
-        const date = new Date(transaction.date);
+        const transactionDate = new Date(transaction.date);
         return transaction.userId === userId && 
-               date.getMonth() === month && 
-               date.getFullYear() === year;
+               transactionDate >= startDate && 
+               transactionDate <= endDate;
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
