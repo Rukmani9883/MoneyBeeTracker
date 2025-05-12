@@ -749,6 +749,19 @@ export class DatabaseStorage implements IStorage {
 
   async createIncome(insertIncome: InsertIncome): Promise<Income> {
     const [income] = await db.insert(incomes).values(insertIncome).returning();
+    
+    // Create a transaction record for this income
+    await this.createTransaction({
+      userId: income.userId,
+      type: "income",
+      amount: income.amount,
+      description: income.name,
+      date: income.date,
+      category: income.category,
+      sourceId: income.id,
+      destinationId: null
+    });
+    
     return income;
   }
 
@@ -831,6 +844,19 @@ export class DatabaseStorage implements IStorage {
 
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
     const [expense] = await db.insert(expenses).values(insertExpense).returning();
+    
+    // Create a transaction record for this expense
+    await this.createTransaction({
+      userId: expense.userId,
+      type: "expense",
+      amount: expense.amount,
+      description: expense.name,
+      date: expense.date,
+      category: expense.category,
+      sourceId: expense.id,
+      destinationId: null
+    });
+    
     return expense;
   }
 
@@ -1057,6 +1083,19 @@ export class DatabaseStorage implements IStorage {
 
   async createDebt(insertDebt: InsertDebt): Promise<Debt> {
     const [debt] = await db.insert(debts).values(insertDebt).returning();
+    
+    // Create a transaction record for this debt
+    await this.createTransaction({
+      userId: debt.userId,
+      type: "debt",
+      amount: debt.totalAmount,
+      description: debt.name,
+      date: new Date(),
+      category: debt.category || null,
+      sourceId: debt.id,
+      destinationId: null
+    });
+    
     return debt;
   }
 
