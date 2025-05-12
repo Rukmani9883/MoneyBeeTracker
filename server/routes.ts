@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(
     session({
       store: sessionStore,
-      name: 'moneybee.sid', 
+      name: 'connect.sid', // Use the default Express session cookie name for consistency
       secret: process.env.SESSION_SECRET || 'money-bee-secret',
       resave: false,
       saveUninitialized: false,
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Clear the cookie using the same name set in the session config
-        res.clearCookie('moneybee.sid');
+        res.clearCookie('connect.sid');
         console.log("Logout successful, cookie cleared");
         res.status(200).json({ message: "Logged out successfully" });
       });
