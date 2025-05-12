@@ -559,10 +559,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If month and year are provided, filter the debts
       if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
-        // Filter debts by date created in the specified month and year
+        // Filter debts by due date in the specified month and year
         debts = debts.filter(debt => {
-          const debtDate = new Date(debt.dateCreated);
-          return debtDate.getMonth() === month && debtDate.getFullYear() === year;
+          if (!debt.dueDate) return false;
+          const dueDate = new Date(debt.dueDate);
+          return dueDate.getMonth() === month && dueDate.getFullYear() === year;
         });
       }
       
