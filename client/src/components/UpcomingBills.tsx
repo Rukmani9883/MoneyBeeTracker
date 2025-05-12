@@ -24,7 +24,8 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
   const { data: bills, isLoading } = useQuery<Bill[]>({
     queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }],
     queryFn: async () => {
-      const res = await fetch(`/api/bills/upcoming?userId=${userId}&month=${apiMonth}&year=${selectedYear}&daysAhead=30`);
+      const url = `/api/bills/upcoming?userId=${userId}&daysAhead=30`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch bills');
       return res.json();
     }

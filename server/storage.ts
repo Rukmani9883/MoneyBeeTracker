@@ -1159,7 +1159,7 @@ export class DatabaseStorage implements IStorage {
 
   async getTotalDebts(userId: number, isOwedByUser: boolean): Promise<number> {
     const debts = await this.getDebtsByOwnership(userId, isOwedByUser);
-    return debts.reduce((total, debt) => total + debt.amount, 0);
+    return debts.reduce((total, debt) => total + debt.remainingAmount, 0);
   }
 
   // Bills operations
@@ -1174,6 +1174,19 @@ export class DatabaseStorage implements IStorage {
 
   async createBill(insertBill: InsertBill): Promise<Bill> {
     const [bill] = await db.insert(bills).values(insertBill).returning();
+    
+    // Create a transaction record for this bill
+    await this.createTransaction({
+      userId: bill.userId,
+      type: "bill",
+      amount: bill.amount,
+      description: bill.name,
+      date: bill.dueDate,
+      category: bill.category,
+      sourceId: bill.id,
+      destinationId: null
+    });
+    
     return bill;
   }
 
