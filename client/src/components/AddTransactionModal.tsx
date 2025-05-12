@@ -11,7 +11,7 @@ interface AddTransactionModalProps {
 const AddTransactionModal = ({ isOpen, onClose, userId }: AddTransactionModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md p-0 overflow-hidden">
+      <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md p-0 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-xl font-semibold text-white">Add Transaction</DialogTitle>
           <DialogDescription className="text-[#CCCCCC]">
