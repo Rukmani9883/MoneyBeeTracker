@@ -80,9 +80,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        path: '/',
       },
+      rolling: true, // Resets cookie expiration on each request
     })
   );
+  
+  // Debug middleware to log session on every request
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    console.log("Request path:", req.path);
+    console.log("Session debug - ID:", req.sessionID);
+    console.log("Session debug - Cookie:", req.headers.cookie);
+    console.log("Session debug - User ID:", req.session.userId);
+    next();
+  });
 
   // prefix all routes with /api
   const api = "/api";
