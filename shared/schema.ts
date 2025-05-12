@@ -34,16 +34,20 @@ export const incomes = pgTable("incomes", {
   notes: text("notes"),
 });
 
-export const insertIncomeSchema = createInsertSchema(incomes).pick({
-  userId: true,
-  name: true,
-  amount: true,
-  category: true,
-  date: true,
-  recurring: true,
-  frequency: true,
-  notes: true,
-});
+export const insertIncomeSchema = createInsertSchema(incomes)
+  .pick({
+    userId: true,
+    name: true,
+    amount: true,
+    category: true,
+    date: true,
+    recurring: true,
+    frequency: true,
+    notes: true,
+  })
+  .extend({
+    date: z.string().transform((str) => new Date(str)),
+  });
 
 // Expense Schema
 export const expenses = pgTable("expenses", {
@@ -58,16 +62,20 @@ export const expenses = pgTable("expenses", {
   notes: text("notes"),
 });
 
-export const insertExpenseSchema = createInsertSchema(expenses).pick({
-  userId: true,
-  name: true,
-  amount: true,
-  category: true,
-  date: true,
-  recurring: true,
-  frequency: true,
-  notes: true,
-});
+export const insertExpenseSchema = createInsertSchema(expenses)
+  .pick({
+    userId: true,
+    name: true,
+    amount: true,
+    category: true,
+    date: true,
+    recurring: true,
+    frequency: true,
+    notes: true,
+  })
+  .extend({
+    date: z.string().transform((str) => new Date(str)),
+  });
 
 // Savings Schema
 export const savings = pgTable("savings", {
@@ -99,14 +107,18 @@ export const vaultGoals = pgTable("vault_goals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertVaultGoalSchema = createInsertSchema(vaultGoals).pick({
-  userId: true,
-  name: true,
-  targetAmount: true,
-  currentAmount: true,
-  deadline: true,
-  notes: true,
-});
+export const insertVaultGoalSchema = createInsertSchema(vaultGoals)
+  .pick({
+    userId: true,
+    name: true,
+    targetAmount: true,
+    currentAmount: true,
+    deadline: true,
+    notes: true,
+  })
+  .extend({
+    deadline: z.string().optional().transform(str => str ? new Date(str) : undefined),
+  });
 
 // Debt Schema
 export const debts = pgTable("debts", {
@@ -123,18 +135,22 @@ export const debts = pgTable("debts", {
   notes: text("notes"),
 });
 
-export const insertDebtSchema = createInsertSchema(debts).pick({
-  userId: true,
-  name: true,
-  isOwedByUser: true,
-  totalAmount: true,
-  remainingAmount: true,
-  interestRate: true,
-  dueDate: true,
-  monthlyPayment: true,
-  category: true,
-  notes: true,
-});
+export const insertDebtSchema = createInsertSchema(debts)
+  .pick({
+    userId: true,
+    name: true,
+    isOwedByUser: true,
+    totalAmount: true,
+    remainingAmount: true,
+    interestRate: true,
+    dueDate: true,
+    monthlyPayment: true,
+    category: true,
+    notes: true,
+  })
+  .extend({
+    dueDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
+  });
 
 // Bills & EMI Schema
 export const bills = pgTable("bills", {
@@ -152,19 +168,23 @@ export const bills = pgTable("bills", {
   notes: text("notes"),
 });
 
-export const insertBillSchema = createInsertSchema(bills).pick({
-  userId: true,
-  name: true,
-  amount: true,
-  dueDate: true,
-  category: true,
-  recurring: true,
-  frequency: true,
-  isPaid: true,
-  reminderDays: true,
-  autoPayment: true,
-  notes: true,
-});
+export const insertBillSchema = createInsertSchema(bills)
+  .pick({
+    userId: true,
+    name: true,
+    amount: true,
+    dueDate: true,
+    category: true,
+    recurring: true,
+    frequency: true,
+    isPaid: true,
+    reminderDays: true,
+    autoPayment: true,
+    notes: true,
+  })
+  .extend({
+    dueDate: z.string().transform(str => new Date(str)),
+  });
 
 // Transaction Schema (for transfers between accounts)
 export const transactions = pgTable("transactions", {
@@ -179,16 +199,20 @@ export const transactions = pgTable("transactions", {
   category: text("category"),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).pick({
-  userId: true,
-  type: true,
-  sourceId: true,
-  destinationId: true,
-  amount: true,
-  description: true,
-  date: true,
-  category: true,
-});
+export const insertTransactionSchema = createInsertSchema(transactions)
+  .pick({
+    userId: true,
+    type: true,
+    sourceId: true,
+    destinationId: true,
+    amount: true,
+    description: true,
+    date: true,
+    category: true,
+  })
+  .extend({
+    date: z.string().transform(str => new Date(str)),
+  });
 
 // Type exports
 export type User = typeof users.$inferSelect;
