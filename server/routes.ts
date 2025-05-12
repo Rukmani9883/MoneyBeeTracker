@@ -143,6 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set user in session
       req.session.userId = user.id;
       console.log("Setting session user ID:", user.id);
+      console.log("Session ID:", req.sessionID);
+      console.log("Full session object:", req.session);
       
       // Save session explicitly to ensure it's stored before responding
       req.session.save((err) => {
@@ -154,8 +156,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't return password in response
         const { password: userPassword, ...userWithoutPassword } = user;
         
+        // Check our session data again after save
+        console.log("After save - Session ID:", req.sessionID);
+        console.log("After save - User ID in session:", req.session.userId);
+        
         console.log("Login successful for user:", username);
-        res.status(200).json(userWithoutPassword);
+        
+        // Include session info in the response for debugging
+        res.status(200).json({
+          ...userWithoutPassword,
+          sessionInfo: {
+            sessionId: req.sessionID,
+            sessionUserId: req.session.userId
+          }
+        });
       });
     } catch (error: any) {
       console.error("Login error:", error);

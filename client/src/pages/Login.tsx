@@ -48,10 +48,23 @@ export default function Login() {
         throw new Error(data.message || "Failed to login");
       }
       
+      // Log additional information from the enhanced response
+      if (data.sessionInfo) {
+        console.log("Session information received:", data.sessionInfo);
+      }
+      
+      // Force a refetch of the user data from the server
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      // Wait a moment for the query to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       toast({
         title: "Success",
         description: "You have been logged in successfully",
       });
+      
+      // Navigate to dashboard
       navigate("/dashboard");
     } catch (error: any) {
       toast({
