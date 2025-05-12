@@ -71,6 +71,7 @@ export interface IStorage {
   getUpcomingBills(userId: number, daysAhead: number): Promise<Bill[]>;
   markBillAsPaid(id: number): Promise<Bill | undefined>;
   getUnpaidBills(userId: number): Promise<Bill[]>;
+  getBillsForMonth(userId: number, month: number, year: number): Promise<Bill[]>;
 
   // Transactions
   getTransactions(userId: number): Promise<Transaction[]>;
