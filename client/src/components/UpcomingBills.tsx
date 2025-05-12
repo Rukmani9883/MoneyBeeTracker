@@ -24,7 +24,8 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
   const { data: bills, isLoading } = useQuery<Bill[]>({
     queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }],
     queryFn: async () => {
-      const url = `/api/bills/upcoming?userId=${userId}&daysAhead=30`;
+      // Include month and year parameters for filtering
+      const url = `/api/bills/upcoming?userId=${userId}&month=${apiMonth}&year=${selectedYear}&daysAhead=30`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch bills');
       return res.json();
@@ -33,7 +34,10 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
 
   const markAsPaidMutation = useMutation({
     mutationFn: async (billId: number) => {
-      return apiRequest('POST', `/api/bills/${billId}/mark-paid`, {});
+      return apiRequest(`/api/bills/${billId}/mark-paid`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bills/upcoming'] });
