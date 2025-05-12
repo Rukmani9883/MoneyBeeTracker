@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
 import { addDays, format } from "date-fns";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 interface BillFormProps {
   userId: number;
@@ -137,7 +138,10 @@ const BillForm = ({
       
       if (bill) {
         // Update existing bill
-        await apiRequest("PUT", `/api/bills/${bill.id}`, billData);
+        await apiRequest(`/api/bills/${bill.id}`, {
+          method: "PUT",
+          body: JSON.stringify(billData)
+        });
         toast({
           title: "Success",
           description: "Bill updated successfully.",
@@ -145,13 +149,19 @@ const BillForm = ({
         });
       } else {
         // Create new bill
-        await apiRequest("POST", "/api/bills", billData);
+        await apiRequest("/api/bills", {
+          method: "POST",
+          body: JSON.stringify(billData)
+        });
         toast({
           title: "Success",
           description: "Bill added successfully.",
           variant: "default",
         });
       }
+      
+      // Notify all components that financial data has changed
+      notifyFinancialDataChanged();
       
       if (onSuccess) {
         onSuccess();
