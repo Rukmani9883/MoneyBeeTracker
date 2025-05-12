@@ -622,6 +622,78 @@ export class MemStorage implements IStorage {
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
+
+  async clearAllData(userId: number): Promise<boolean> {
+    try {
+      // Delete all transactions for this user
+      const transactionIdsToDelete: number[] = [];
+      this.transactions.forEach((transaction, id) => {
+        if (transaction.userId === userId) {
+          transactionIdsToDelete.push(id);
+        }
+      });
+      transactionIdsToDelete.forEach(id => this.transactions.delete(id));
+      
+      // Delete all incomes for this user
+      const incomeIdsToDelete: number[] = [];
+      this.incomes.forEach((income, id) => {
+        if (income.userId === userId) {
+          incomeIdsToDelete.push(id);
+        }
+      });
+      incomeIdsToDelete.forEach(id => this.incomes.delete(id));
+      
+      // Delete all expenses for this user
+      const expenseIdsToDelete: number[] = [];
+      this.expenses.forEach((expense, id) => {
+        if (expense.userId === userId) {
+          expenseIdsToDelete.push(id);
+        }
+      });
+      expenseIdsToDelete.forEach(id => this.expenses.delete(id));
+      
+      // Delete all savings for this user
+      const savingIdsToDelete: number[] = [];
+      this.savings.forEach((saving, id) => {
+        if (saving.userId === userId) {
+          savingIdsToDelete.push(id);
+        }
+      });
+      savingIdsToDelete.forEach(id => this.savings.delete(id));
+      
+      // Delete all vault goals for this user
+      const vaultGoalIdsToDelete: number[] = [];
+      this.vaultGoals.forEach((goal, id) => {
+        if (goal.userId === userId) {
+          vaultGoalIdsToDelete.push(id);
+        }
+      });
+      vaultGoalIdsToDelete.forEach(id => this.vaultGoals.delete(id));
+      
+      // Delete all debts for this user
+      const debtIdsToDelete: number[] = [];
+      this.debts.forEach((debt, id) => {
+        if (debt.userId === userId) {
+          debtIdsToDelete.push(id);
+        }
+      });
+      debtIdsToDelete.forEach(id => this.debts.delete(id));
+      
+      // Delete all bills for this user
+      const billIdsToDelete: number[] = [];
+      this.bills.forEach((bill, id) => {
+        if (bill.userId === userId) {
+          billIdsToDelete.push(id);
+        }
+      });
+      billIdsToDelete.forEach(id => this.bills.delete(id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error clearing user data:', error);
+      return false;
+    }
+  }
 }
 
 // Create a DatabaseStorage implementation
