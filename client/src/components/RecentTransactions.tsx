@@ -1,16 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Transaction } from "@shared/schema";
 import { format } from "date-fns";
 import { getCategoryIcon } from "./CategoryIcons";
+import { useEffect } from "react";
 
 interface RecentTransactionsProps {
   userId: number;
   limit?: number;
   month?: number;
   year?: number;
+  autoRefresh?: boolean;
 }
 
-const RecentTransactions = ({ userId, limit = 4, month, year }: RecentTransactionsProps) => {
+const RecentTransactions = ({ 
+  userId, 
+  limit = 4, 
+  month, 
+  year,
+  autoRefresh = true 
+}: RecentTransactionsProps) => {
+  const queryClient = useQueryClient();
+  
   // Get current month and year if not provided
   const currentDate = new Date();
   const selectedMonth = month !== undefined ? month : currentDate.getMonth();
@@ -19,55 +29,49 @@ const RecentTransactions = ({ userId, limit = 4, month, year }: RecentTransactio
   // For API call we need to add 1 to month because JS months are 0-based
   const apiMonth = selectedMonth + 1;
   
+  // Query key for the transactions
+  const transactionsQueryKey = ['/api/transactions/monthly', { userId, month: apiMonth, year: selectedYear }];
+  
+  // Set up auto-refresh at regular intervals if enabled
+  useEffect(() => {
+    if (!autoRefresh) return;
+    
+    // Refresh data every 30 seconds to catch any changes
+    const intervalId = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: transactionsQueryKey });
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [autoRefresh, queryClient, transactionsQueryKey]);
+  
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
-    queryKey: ['/api/transactions/monthly', { userId, month: apiMonth, year: selectedYear, limit }],
+    queryKey: transactionsQueryKey,
     queryFn: async () => {
       const res = await fetch(`/api/transactions/monthly?userId=${userId}&month=${apiMonth}&year=${selectedYear}&limit=${limit}`);
       if (!res.ok) throw new Error('Failed to fetch transactions');
       return res.json();
-    }
+    },
+    staleTime: 10000, // Consider data fresh for 10 seconds
   });
 
-  // Function to determine icon and color based on transaction type
-  const getTransactionDetails = (transaction: Transaction) => {
-    let icon = null;
-    let color = "";
-    
-    if (transaction.type === "income") {
-      icon = (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="8 12 12 8 16 12"></polyline>
-          <line x1="12" y1="16" x2="12" y2="8"></line>
-        </svg>
-      );
-      color = "text-[#4CAF50]";
-    } else if (transaction.type === "expense") {
-      icon = (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="8 12 12 16 16 12"></polyline>
-          <line x1="12" y1="8" x2="12" y2="16"></line>
-        </svg>
-      );
-      color = "text-[#F44336]";
+  // Get appropriate payment method text based on transaction type and category
+  const getTransactionPaymentMethod = (transaction: Transaction) => {
+    if (transaction.type === 'income') {
+      return 'Direct Deposit';
+    } else if (transaction.type === 'expense') {
+      if (transaction.category === 'bill') {
+        return 'Bill Payment';
+      } else if (transaction.category === 'debt payment') {
+        return 'EMI Payment';
+      } else {
+        return 'Debit Card';
+      }
     } else {
-      icon = (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 1l4 4-4 4"></path>
-          <path d="M3 11V9a4 4 0 014-4h14"></path>
-          <path d="M7 23l-4-4 4-4"></path>
-          <path d="M21 13v2a4 4 0 01-4 4H3"></path>
-        </svg>
-      );
-      color = "text-[#2196F3]";
+      return 'Transfer';
     }
-    
-    return { icon, color };
   };
   
-
-
+  // Display skeleton loading state
   if (isLoading) {
     return (
       <div className="bg-[#1E1E1E] rounded-xl p-5 shadow-lg animate-pulse">
@@ -91,22 +95,29 @@ const RecentTransactions = ({ userId, limit = 4, month, year }: RecentTransactio
     );
   }
 
+  // Sort and limit transactions if needed
+  const displayTransactions = transactions
+    ? [...transactions]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, limit)
+    : [];
+
   return (
     <div className="bg-[#1E1E1E] rounded-xl p-5 shadow-lg">
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-semibold text-white">Recent Transactions</h3>
-        <button className="text-[#CCCCCC] hover:text-[#FFD700] text-sm transition-colors">
-          View All
-        </button>
+        {transactions && transactions.length > limit && (
+          <button className="text-[#CCCCCC] hover:text-[#FFD700] text-sm transition-colors">
+            View All
+          </button>
+        )}
       </div>
       
-      {transactions && transactions.length > 0 ? (
-        transactions.map((transaction, index) => {
-          const { icon, color } = getTransactionDetails(transaction);
-          const isLastItem = index === transactions.length - 1;
-          const amountPrefix = transaction.type === 'income' ? '+' : (transaction.type === 'expense' ? '-' : '');
-          const amountColor = transaction.type === 'income' ? 'text-[#4CAF50]' : 
-                            (transaction.type === 'expense' ? 'text-[#F44336]' : 'text-[#2196F3]');
+      {displayTransactions.length > 0 ? (
+        displayTransactions.map((transaction, index) => {
+          const isLastItem = index === displayTransactions.length - 1;
+          const amountPrefix = transaction.type === 'income' ? '+' : '-';
+          const amountColor = transaction.type === 'income' ? 'text-[#4CAF50]' : 'text-[#F44336]';
           
           const formattedAmount = new Intl.NumberFormat('en-IN', { 
             style: 'currency', 
@@ -114,10 +125,14 @@ const RecentTransactions = ({ userId, limit = 4, month, year }: RecentTransactio
           }).format(transaction.amount);
           
           const formattedDate = format(new Date(transaction.date), "MMM d, yyyy");
+          const paymentMethod = getTransactionPaymentMethod(transaction);
+          
+          // Use category to determine icon color
+          const color = transaction.type === 'income' ? 'text-[#4CAF50]' : 'text-[#F44336]';
           
           return (
             <div 
-              key={transaction.id} 
+              key={`${transaction.id}-${transaction.type}-${index}`} 
               className={`flex items-center justify-between py-3 ${isLastItem ? '' : 'border-b border-[#2D2D2D]'}`}
             >
               <div className="flex items-center">
@@ -131,7 +146,7 @@ const RecentTransactions = ({ userId, limit = 4, month, year }: RecentTransactio
               </div>
               <div className="text-right">
                 <p className={`font-mono font-medium ${amountColor}`}>{amountPrefix}{formattedAmount}</p>
-                <p className="text-xs text-[#999999]">{transaction.type === 'income' ? 'Direct Deposit' : 'Debit Card'}</p>
+                <p className="text-xs text-[#999999]">{paymentMethod}</p>
               </div>
             </div>
           );

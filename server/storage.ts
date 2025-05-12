@@ -636,14 +636,162 @@ export class MemStorage implements IStorage {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0); // Last day of the month
     
-    return Array.from(this.transactions.values())
+    // Get existing transactions for this month
+    const existingTransactions = Array.from(this.transactions.values())
       .filter(transaction => {
         const transactionDate = new Date(transaction.date);
         return transaction.userId === userId && 
                transactionDate >= startDate && 
                transactionDate <= endDate;
+      });
+    
+    // Get incomes for this month and convert to transaction format
+    const incomeTransactions = Array.from(this.incomes.values())
+      .filter(income => {
+        const incomeDate = new Date(income.date);
+        return income.userId === userId && 
+               incomeDate >= startDate && 
+               incomeDate <= endDate;
       })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .map(income => {
+        // Check if this income already has a transaction record
+        const existingTransaction = existingTransactions.find(
+          t => t.type === 'income' && t.sourceId === income.id
+        );
+        
+        // Only include if no matching transaction exists
+        if (!existingTransaction) {
+          return {
+            id: -income.id, // Temporary negative ID to avoid collisions
+            userId: income.userId,
+            type: 'income',
+            sourceId: income.id,
+            destinationId: null,
+            amount: income.amount,
+            description: income.name,
+            date: income.date,
+            category: income.category,
+          } as Transaction;
+        }
+        return null;
+      })
+      .filter(Boolean) as Transaction[];
+    
+    // Get expenses for this month and convert to transaction format
+    const expenseTransactions = Array.from(this.expenses.values())
+      .filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expense.userId === userId && 
+               expenseDate >= startDate && 
+               expenseDate <= endDate;
+      })
+      .map(expense => {
+        // Check if this expense already has a transaction record
+        const existingTransaction = existingTransactions.find(
+          t => t.type === 'expense' && t.sourceId === expense.id
+        );
+        
+        // Only include if no matching transaction exists
+        if (!existingTransaction) {
+          return {
+            id: -expense.id - 1000000, // Temporary negative ID to avoid collisions
+            userId: expense.userId,
+            type: 'expense',
+            sourceId: expense.id,
+            destinationId: null,
+            amount: expense.amount,
+            description: expense.name,
+            date: expense.date,
+            category: expense.category,
+          } as Transaction;
+        }
+        return null;
+      })
+      .filter(Boolean) as Transaction[];
+    
+    // Get bills due this month that are paid and convert to transaction format
+    const billTransactions = Array.from(this.bills.values())
+      .filter(bill => {
+        const billDate = new Date(bill.dueDate);
+        return bill.userId === userId && 
+               billDate >= startDate && 
+               billDate <= endDate &&
+               bill.isPaid === true;
+      })
+      .map(bill => {
+        // Check if this bill already has a transaction record
+        const existingTransaction = existingTransactions.find(
+          t => t.type === 'expense' && t.sourceId === bill.id && t.category === 'bill'
+        );
+        
+        // Only include if no matching transaction exists
+        if (!existingTransaction) {
+          return {
+            id: -bill.id - 2000000, // Temporary negative ID to avoid collisions
+            userId: bill.userId,
+            type: 'expense',
+            sourceId: bill.id,
+            destinationId: null,
+            amount: bill.amount,
+            description: bill.name,
+            date: bill.dueDate, // Use due date as transaction date for paid bills
+            category: 'bill',
+          } as Transaction;
+        }
+        return null;
+      })
+      .filter(Boolean) as Transaction[];
+    
+    // Get debt payments this month and convert to transaction format
+    const debtTransactions = Array.from(this.debts.values())
+      .filter(debt => {
+        // Use debt that has a monthly payment, assuming it was paid this month
+        return debt.userId === userId && 
+               debt.monthlyPayment !== null && 
+               debt.monthlyPayment > 0;
+      })
+      .map(debt => {
+        // Create a transaction for this month's debt payment
+        // Using the 15th of the month as an assumed payment date if no specific date
+        const paymentDate = new Date(year, month - 1, 15);
+        
+        // Check if this debt already has a transaction record for this month
+        const existingTransaction = existingTransactions.find(
+          t => t.type === 'expense' && 
+               t.sourceId === debt.id && 
+               t.category === 'debt payment' &&
+               new Date(t.date).getMonth() === month - 1 &&
+               new Date(t.date).getFullYear() === year
+        );
+        
+        // Only include if no matching transaction exists
+        if (!existingTransaction && debt.monthlyPayment) {
+          return {
+            id: -debt.id - 3000000, // Temporary negative ID to avoid collisions
+            userId: debt.userId,
+            type: 'expense',
+            sourceId: debt.id,
+            destinationId: null,
+            amount: debt.monthlyPayment,
+            description: `${debt.name} Payment`,
+            date: paymentDate,
+            category: 'debt payment',
+          } as Transaction;
+        }
+        return null;
+      })
+      .filter(Boolean) as Transaction[];
+    
+    // Combine all transactions and sort by date (newest first)
+    const allTransactions = [
+      ...existingTransactions,
+      ...incomeTransactions,
+      ...expenseTransactions,
+      ...billTransactions,
+      ...debtTransactions
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return allTransactions;
   }
 
   async clearAllData(userId: number): Promise<boolean> {
