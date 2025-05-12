@@ -906,11 +906,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSaving(id: number): Promise<boolean> {
-    const [deletedSaving] = await db
-      .delete(savings)
-      .where(eq(savings.id, id))
-      .returning();
-    return !!deletedSaving;
+    try {
+      // Get the saving to verify it exists and get its information
+      const [saving] = await db
+        .select()
+        .from(savings)
+        .where(eq(savings.id, id));
+        
+      if (!saving) {
+        return false;
+      }
+      
+      // Execute in a transaction to ensure both deletes work together
+      await db.transaction(async (tx) => {
+        // Delete any related transactions with this saving ID as sourceId
+        await tx
+          .delete(transactions)
+          .where(
+            and(
+              eq(transactions.type, 'saving'),
+              eq(transactions.sourceId, id)
+            )
+          );
+          
+        // Delete the saving entry
+        await tx
+          .delete(savings)
+          .where(eq(savings.id, id));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting saving:", error);
+      return false;
+    }
   }
 
   async getMonthlySavings(userId: number, month: string, year: number): Promise<Saving | undefined> {
@@ -1021,11 +1050,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDebt(id: number): Promise<boolean> {
-    const [deletedDebt] = await db
-      .delete(debts)
-      .where(eq(debts.id, id))
-      .returning();
-    return !!deletedDebt;
+    try {
+      // Get the debt to verify it exists and get its information
+      const [debt] = await db
+        .select()
+        .from(debts)
+        .where(eq(debts.id, id));
+        
+      if (!debt) {
+        return false;
+      }
+      
+      // Execute in a transaction to ensure both deletes work together
+      await db.transaction(async (tx) => {
+        // Delete any related transactions with this debt ID as sourceId
+        await tx
+          .delete(transactions)
+          .where(
+            and(
+              eq(transactions.type, 'debt'),
+              eq(transactions.sourceId, id)
+            )
+          );
+          
+        // Delete the debt entry
+        await tx
+          .delete(debts)
+          .where(eq(debts.id, id));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting debt:", error);
+      return false;
+    }
   }
 
   async getDebtsByOwnership(userId: number, isOwedByUser: boolean): Promise<Debt[]> {
@@ -1070,11 +1128,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteBill(id: number): Promise<boolean> {
-    const [deletedBill] = await db
-      .delete(bills)
-      .where(eq(bills.id, id))
-      .returning();
-    return !!deletedBill;
+    try {
+      // Get the bill to verify it exists and get its information
+      const [bill] = await db
+        .select()
+        .from(bills)
+        .where(eq(bills.id, id));
+        
+      if (!bill) {
+        return false;
+      }
+      
+      // Execute in a transaction to ensure both deletes work together
+      await db.transaction(async (tx) => {
+        // Delete any related transactions with this bill ID as sourceId
+        await tx
+          .delete(transactions)
+          .where(
+            and(
+              eq(transactions.type, 'bill'),
+              eq(transactions.sourceId, id)
+            )
+          );
+          
+        // Delete the bill entry
+        await tx
+          .delete(bills)
+          .where(eq(bills.id, id));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting bill:", error);
+      return false;
+    }
   }
 
   async getUpcomingBills(userId: number, daysAhead: number): Promise<Bill[]> {
