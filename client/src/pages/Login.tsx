@@ -28,6 +28,8 @@ export default function Login() {
 
     setLoading(true);
     try {
+      console.log("Attempting login with:", { username });
+      
       // Use fetch directly for better error handling
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -38,7 +40,9 @@ export default function Login() {
         credentials: 'include',
       });
 
+      console.log("Login response status:", response.status);
       const data = await response.json();
+      console.log("Login response data:", data);
       
       if (!response.ok) {
         throw new Error(data.message || "Failed to login");

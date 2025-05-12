@@ -573,27 +573,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if month and year are provided for filtering
-      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : undefined;
+      // Note: Frontend sends 1-based month, but JS Date uses 0-based month
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) - 1 : undefined;
       const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
       
       let debts;
       
-      // Get all debts first
-      debts = await storage.getDebts(userId);
-      
-      // If month and year are provided, filter the debts
-      if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
-        // Filter debts by due date in the specified month and year
-        debts = debts.filter(debt => {
-          if (!debt.dueDate) return false;
-          const dueDate = new Date(debt.dueDate);
-          return dueDate.getMonth() === month && dueDate.getFullYear() === year;
-        });
+      try {
+        // Get all debts first
+        debts = await storage.getDebts(userId);
+        
+        // If month and year are provided, filter the debts
+        if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year) && month >= 0 && month < 12) {
+          console.log(`Filtering debts for month ${month + 1} and year ${year}`);
+          
+          // Filter debts by due date in the specified month and year
+          debts = debts.filter(debt => {
+            if (!debt.dueDate) return true; // Include debts without due dates
+            
+            const dueDate = new Date(debt.dueDate);
+            return dueDate.getMonth() === month && dueDate.getFullYear() === year;
+          });
+        }
+        
+        return res.status(200).json(debts);
+      } catch (err: any) {
+        console.error("Error processing debts:", err);
+        return res.status(200).json([]); // Return empty array on error
       }
-      
-      res.status(200).json(debts);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: any) {
+      console.error("Error in debts endpoint:", error);
+      res.status(400).json({ message: error.message || "Error retrieving debts" });
     }
   });
 
@@ -680,22 +690,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if month and year are provided for filtering
-      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : undefined;
+      // Note: Frontend sends 1-based month, but JS Date uses 0-based month
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) - 1 : undefined;
       const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
       
       let bills;
       
-      // Get all bills first
-      bills = await storage.getBills(userId);
-      
-      // If month and year are provided, filter the bills
-      if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
-        // Filter bills by due date in the specified month and year
-        bills = bills.filter(bill => {
-          if (!bill.dueDate) return false;
-          const dueDate = new Date(bill.dueDate);
-          return dueDate.getMonth() === month && dueDate.getFullYear() === year;
-        });
+      try {
+        // Get all bills first
+        bills = await storage.getBills(userId);
+        
+        // If month and year are provided, filter the bills
+        if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year) && month >= 0 && month < 12) {
+          console.log(`Filtering bills for month ${month + 1} and year ${year}`);
+          
+          // Filter bills by due date in the specified month and year
+          bills = bills.filter(bill => {
+            if (!bill.dueDate) return true; // Include bills without due dates
+            
+            const dueDate = new Date(bill.dueDate);
+            return dueDate.getMonth() === month && dueDate.getFullYear() === year;
+          });
+        }
+      } catch (err: any) {
+        console.error("Error processing bills:", err);
+        bills = []; // Use empty array on error
       }
       
       res.status(200).json(bills);
