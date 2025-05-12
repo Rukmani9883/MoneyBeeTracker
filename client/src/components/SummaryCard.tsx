@@ -24,7 +24,7 @@ const SummaryCard = ({ title, amount, percentChange, icon, iconColor }: SummaryC
     <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg">
       <div className="flex justify-between items-start mb-3">
         <div className="text-[#CCCCCC] font-medium text-sm">{title}</div>
-        <div className={iconColor}>
+        <div className={iconColor ? iconColor : ""}>
           {icon}
         </div>
       </div>
