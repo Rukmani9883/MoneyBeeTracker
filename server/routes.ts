@@ -352,7 +352,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const savings = await storage.getSavings(userId);
+      // Check if month and year are provided for filtering
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : undefined;
+      const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
+      
+      let savings;
+      
+      if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
+        // Get the month name for filtering
+        const monthNames = ["January", "February", "March", "April", "May", "June", 
+                          "July", "August", "September", "October", "November", "December"];
+        
+        // Filter savings by month and year
+        savings = await storage.getSavings(userId);
+        savings = savings.filter(saving => 
+          saving.month === monthNames[month] && saving.year === year
+        );
+      } else {
+        // Get all savings if no date filter
+        savings = await storage.getSavings(userId);
+      }
+      
       res.status(200).json(savings);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -528,7 +548,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const debts = await storage.getDebts(userId);
+      // Check if month and year are provided for filtering
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : undefined;
+      const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
+      
+      let debts;
+      
+      // Get all debts first
+      debts = await storage.getDebts(userId);
+      
+      // If month and year are provided, filter the debts
+      if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
+        // Filter debts by date created in the specified month and year
+        debts = debts.filter(debt => {
+          const debtDate = new Date(debt.dateCreated);
+          return debtDate.getMonth() === month && debtDate.getFullYear() === year;
+        });
+      }
+      
       res.status(200).json(debts);
     } catch (error) {
       res.status(400).json({ message: error.message });

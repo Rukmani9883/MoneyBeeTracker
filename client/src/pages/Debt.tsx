@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import DateSelector from "@/components/DateSelector";
 import { 
   Dialog, 
   DialogContent, 
@@ -53,18 +54,25 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
   const [deletingDebtId, setDeletingDebtId] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get all debts
+  // Get all debts with date filtering
   const { data: debts, isLoading } = useQuery<Debt[]>({
-    queryKey: ['/api/debts', { userId }],
+    queryKey: ['/api/debts', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/debts?userId=${userId}`);
+      const res = await fetch(`/api/debts?userId=${userId}&month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch debts');
       return res.json();
     }
   });
+  
+  const handleDateChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
 
   // Delete debt mutation
   const deleteDebtMutation = useMutation({
@@ -135,6 +143,11 @@ const DebtPage = ({ userId }: DebtPageProps) => {
       <Header title="Debt Manager" userId={userId} />
       
       <div className="p-4 md:p-6 fade-in">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-white">Filter by Period</h2>
+          <DateSelector onDateChange={handleDateChange} />
+        </div>
+        
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Card className="bg-[#1E1E1E] border-[#2D2D2D]">
