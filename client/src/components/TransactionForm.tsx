@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format, parse } from "date-fns";
+import { useAnimation } from "@/components/animations/AnimationProvider";
 
 interface TransactionFormProps {
   userId: number;
@@ -95,6 +96,7 @@ const TransactionForm = ({
 }: TransactionFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { showAnimation } = useAnimation();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -163,6 +165,13 @@ const TransactionForm = ({
           description: `${values.transactionType === "income" ? "Income" : "Expense"} updated successfully.`,
           variant: "default",
         });
+        
+        // Show update animation
+        showAnimation({
+          type: 'update',
+          amount: parseFloat(values.amount),
+          duration: 2000
+        });
       } else {
         // Create new transaction
         response = await apiRequest(
@@ -177,6 +186,13 @@ const TransactionForm = ({
           title: "Success",
           description: `${values.transactionType === "income" ? "Income" : "Expense"} added successfully.`,
           variant: "default",
+        });
+        
+        // Show addition animation based on transaction type
+        showAnimation({
+          type: values.transactionType === "income" ? 'income' : 'expense',
+          amount: parseFloat(values.amount),
+          duration: 2000
         });
       }
       
@@ -209,6 +225,12 @@ const TransactionForm = ({
         title: "Error",
         description: `Failed to ${existingTransaction ? "update" : "create"} ${values.transactionType === "income" ? "income" : "expense"}: ${error.message || "Unknown error"}`,
         variant: "destructive",
+      });
+      
+      // Show error animation
+      showAnimation({
+        type: 'error',
+        duration: 2000
       });
     } finally {
       setIsSubmitting(false);
