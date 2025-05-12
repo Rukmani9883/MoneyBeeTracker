@@ -95,46 +95,55 @@ const MonthlyOverview = ({ data }: MonthlyOverviewProps) => {
       </div>
       
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={filteredData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#2D2D2D" />
-            <XAxis 
-              dataKey="name" 
-              tick={{ fill: '#CCCCCC' }} 
-              tickLine={{ stroke: '#2D2D2D' }}
-              axisLine={{ stroke: '#2D2D2D' }}
-            />
-            <YAxis 
-              tick={{ fill: '#CCCCCC' }} 
-              tickLine={{ stroke: '#2D2D2D' }}
-              axisLine={{ stroke: '#2D2D2D' }}
-              tickFormatter={(value) => `₹${value/1000}k`}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend 
-              iconType="circle" 
-              wrapperStyle={{ paddingTop: 20 }}
-              formatter={(value) => <span className="text-[#CCCCCC]">{value}</span>}
-            />
-            <Bar 
-              dataKey="income" 
-              name="Income" 
-              fill="#4CAF50" 
-              radius={[4, 4, 0, 0]} 
-              barSize={15}
-            />
-            <Bar 
-              dataKey="expenses" 
-              name="Expenses" 
-              fill="#F44336" 
-              radius={[4, 4, 0, 0]} 
-              barSize={15}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        {filteredData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={filteredData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#2D2D2D" />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fill: '#CCCCCC' }} 
+                tickLine={{ stroke: '#2D2D2D' }}
+                axisLine={{ stroke: '#2D2D2D' }}
+              />
+              <YAxis 
+                tick={{ fill: '#CCCCCC' }} 
+                tickLine={{ stroke: '#2D2D2D' }}
+                axisLine={{ stroke: '#2D2D2D' }}
+                tickFormatter={(value) => `₹${value/1000}k`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                iconType="circle" 
+                wrapperStyle={{ paddingTop: 20 }}
+                formatter={(value) => <span className="text-[#CCCCCC]">{value}</span>}
+              />
+              <Bar 
+                dataKey="income" 
+                name="Income" 
+                fill="#4CAF50" 
+                radius={[4, 4, 0, 0]} 
+                barSize={15}
+              />
+              <Bar 
+                dataKey="expenses" 
+                name="Expenses" 
+                fill="#F44336" 
+                radius={[4, 4, 0, 0]} 
+                barSize={15}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-center">
+            <div className="text-[#999999] text-sm mb-2">No financial data available yet</div>
+            <div className="text-[#777777] text-xs max-w-xs">
+              Add income and expenses to see your monthly cashflow chart
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

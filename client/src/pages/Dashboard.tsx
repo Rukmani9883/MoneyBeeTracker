@@ -42,23 +42,10 @@ const Dashboard = ({ userId }: DashboardProps) => {
     }
   });
 
-  // Create demo data if none exists
-  useEffect(() => {
-    if (summary && summary.totalIncome === 0 && summary.totalExpenses === 0) {
-      apiRequest('POST', `/api/demo-data?userId=${userId}`, {})
-        .catch(console.error);
-    }
-  }, [summary, userId]);
+  // Removed auto-creation of demo data so users can enter their own data
 
-  // Monthly chart data (for the last 6 months)
-  const monthlyData = [
-    { name: 'Jan', income: 4000, expenses: 2400, isCurrent: false },
-    { name: 'Feb', income: 4200, expenses: 2800, isCurrent: false },
-    { name: 'Mar', income: 3800, expenses: 2700, isCurrent: false },
-    { name: 'Apr', income: 4250, expenses: 2840, isCurrent: true },
-    { name: 'May', income: 3000, expenses: 1800, isCurrent: false },
-    { name: 'Jun', income: 3500, expenses: 2200, isCurrent: false },
-  ];
+  // Empty monthly chart data (will be populated by user input)
+  const monthlyData: { name: string; income: number; expenses: number; isCurrent: boolean }[] = [];
 
   return (
     <>
