@@ -22,7 +22,7 @@ import { Loader2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format, parse } from "date-fns";
 import { useAnimation } from "@/components/animations/AnimationProvider";
-import { notifyFinancialDataChanged } from "../lib/eventUtils";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 interface TransactionFormProps {
   userId: number;

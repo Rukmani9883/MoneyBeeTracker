@@ -3,6 +3,7 @@ import { Transaction } from "@shared/schema";
 import { format } from "date-fns";
 import { getCategoryIcon } from "./CategoryIcons";
 import { useEffect, useCallback } from "react";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 interface RecentTransactionsProps {
   userId: number;

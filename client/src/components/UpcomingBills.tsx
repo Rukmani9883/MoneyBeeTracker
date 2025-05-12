@@ -3,6 +3,7 @@ import { Bill } from "@shared/schema";
 import { format, differenceInDays } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useEffect, useCallback } from "react";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 interface UpcomingBillsProps {
   userId: number;
@@ -67,8 +68,8 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
     onSuccess: () => {
       refreshBills();
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-      // Trigger event to notify other components
-      window.dispatchEvent(new CustomEvent('financial-data-changed'));
+      // Notify other components of the data change
+      notifyFinancialDataChanged();
     }
   });
 

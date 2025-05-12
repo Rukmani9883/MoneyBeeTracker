@@ -75,8 +75,8 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         body: JSON.stringify(goalData)
       });
       
-      // Dispatch the financial data changed event to notify all components
-      window.dispatchEvent(new CustomEvent('financial-data-changed'));
+      // Notify all components that financial data has changed
+      notifyFinancialDataChanged();
       
       toast({
         title: "Goal Created",
