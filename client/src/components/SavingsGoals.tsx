@@ -4,6 +4,7 @@ import ProgressBar from "./ProgressBar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { VaultGoal } from "@shared/schema";
 import { Plus } from "lucide-react";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 import GoalForm from "./GoalForm";
 
 interface SavingsGoalsProps {

@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Trash2Icon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 export const ResetDataButton = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -45,6 +46,9 @@ export const ResetDataButton = () => {
         description: "All your financial data has been reset.",
         variant: "default",
       });
+      
+      // Notify all components that financial data has changed
+      notifyFinancialDataChanged();
       
       // Close the dialog
       setIsOpen(false);
