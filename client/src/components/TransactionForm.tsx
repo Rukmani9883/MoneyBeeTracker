@@ -135,12 +135,15 @@ const TransactionForm = ({
     try {
       setIsSubmitting(true);
       
+      // Convert the date string to an ISO string to avoid date parsing issues
+      const dateObject = new Date(values.date);
+      
       const transactionData = {
         userId: values.userId,
         name: values.name,
         amount: parseFloat(values.amount),
         category: values.category,
-        date: new Date(values.date),
+        date: dateObject.toISOString(),
         recurring: values.recurring,
         frequency: values.recurring ? values.frequency : null,
         notes: values.notes,
@@ -206,7 +209,7 @@ const TransactionForm = ({
             body: JSON.stringify({
               userId: values.userId,
               type: values.transactionType,
-              date: new Date(values.date),
+              date: dateObject.toISOString(),
               amount: parseFloat(values.amount),
               category: values.category,
               description: values.name,

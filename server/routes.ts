@@ -208,6 +208,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const incomeData = req.body;
+      
+      // Convert date string to Date object if present
+      if (incomeData.date && typeof incomeData.date === 'string') {
+        incomeData.date = new Date(incomeData.date);
+      }
+      
       const updatedIncome = await storage.updateIncome(id, incomeData);
       
       if (!updatedIncome) {
