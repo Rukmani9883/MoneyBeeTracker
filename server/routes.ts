@@ -654,7 +654,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const bills = await storage.getBills(userId);
+      // Check if month and year are provided for filtering
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : undefined;
+      const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
+      
+      let bills;
+      
+      // Get all bills first
+      bills = await storage.getBills(userId);
+      
+      // If month and year are provided, filter the bills
+      if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year)) {
+        // Filter bills by due date in the specified month and year
+        bills = bills.filter(bill => {
+          if (!bill.dueDate) return false;
+          const dueDate = new Date(bill.dueDate);
+          return dueDate.getMonth() === month && dueDate.getFullYear() === year;
+        });
+      }
+      
       res.status(200).json(bills);
     } catch (error) {
       res.status(400).json({ message: error.message });
