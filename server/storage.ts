@@ -742,11 +742,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteIncome(id: number): Promise<boolean> {
-    const [deletedIncome] = await db
-      .delete(incomes)
-      .where(eq(incomes.id, id))
-      .returning();
-    return !!deletedIncome;
+    try {
+      // Get the income to verify it exists and get its information
+      const [income] = await db
+        .select()
+        .from(incomes)
+        .where(eq(incomes.id, id));
+        
+      if (!income) {
+        return false;
+      }
+      
+      // Execute in a transaction to ensure both deletes work together
+      await db.transaction(async (tx) => {
+        // Delete any related transactions with this income ID as sourceId
+        await tx
+          .delete(transactions)
+          .where(
+            and(
+              eq(transactions.type, 'income'),
+              eq(transactions.sourceId, id)
+            )
+          );
+          
+        // Delete the income entry
+        await tx
+          .delete(incomes)
+          .where(eq(incomes.id, id));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting income:", error);
+      return false;
+    }
   }
 
   async getMonthlyIncome(userId: number, month: number, year: number): Promise<Income[]> {
@@ -795,11 +824,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteExpense(id: number): Promise<boolean> {
-    const [deletedExpense] = await db
-      .delete(expenses)
-      .where(eq(expenses.id, id))
-      .returning();
-    return !!deletedExpense;
+    try {
+      // Get the expense to verify it exists and get its information
+      const [expense] = await db
+        .select()
+        .from(expenses)
+        .where(eq(expenses.id, id));
+        
+      if (!expense) {
+        return false;
+      }
+      
+      // Execute in a transaction to ensure both deletes work together
+      await db.transaction(async (tx) => {
+        // Delete any related transactions with this expense ID as sourceId
+        await tx
+          .delete(transactions)
+          .where(
+            and(
+              eq(transactions.type, 'expense'),
+              eq(transactions.sourceId, id)
+            )
+          );
+          
+        // Delete the expense entry
+        await tx
+          .delete(expenses)
+          .where(eq(expenses.id, id));
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      return false;
+    }
   }
 
   async getMonthlyExpenses(userId: number, month: number, year: number): Promise<Expense[]> {
