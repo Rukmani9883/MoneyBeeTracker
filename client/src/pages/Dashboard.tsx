@@ -46,7 +46,10 @@ const Dashboard = ({ userId }: DashboardProps) => {
   const { data: summary, isLoading } = useQuery<DashboardSummary>({
     queryKey: ['/api/dashboard/summary', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/dashboard/summary?userId=${userId}&month=${selectedMonth}&year=${selectedYear}`);
+      // For JavaScript, months are 0-based (0 = January, 11 = December)
+      // But the API expects 1-based months, so we add 1 to selectedMonth
+      const jsMonth = selectedMonth + 1;
+      const res = await fetch(`/api/dashboard/summary?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch dashboard summary');
       return res.json();
     }

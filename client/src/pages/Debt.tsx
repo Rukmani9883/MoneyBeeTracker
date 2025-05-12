@@ -63,7 +63,10 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   const { data: debts, isLoading } = useQuery<Debt[]>({
     queryKey: ['/api/debts', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/debts?userId=${userId}&month=${selectedMonth}&year=${selectedYear}`);
+      // For JavaScript, months are 0-based (0 = January, 11 = December)
+      // But the API expects 1-based months, so we add 1 to selectedMonth
+      const jsMonth = selectedMonth + 1;
+      const res = await fetch(`/api/debts?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch debts');
       return res.json();
     }

@@ -71,7 +71,9 @@ const ExpensesPage = ({ userId }: ExpensesPageProps) => {
 
   const deleteExpenseMutation = useMutation({
     mutationFn: async (expenseId: number) => {
-      return apiRequest('DELETE', `/api/expenses/${expenseId}`, null);
+      return apiRequest(`/api/expenses/${expenseId}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       toast({
