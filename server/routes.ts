@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     session({
       store: new PgSession({
         pool,
-        tableName: 'user_sessions',
+        tableName: 'sessions',
         createTableIfMissing: true,
       }),
       secret: process.env.SESSION_SECRET || 'money-bee-secret',
