@@ -753,6 +753,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = parseInt(req.query.userId as string);
       const daysAhead = parseInt(req.query.daysAhead as string) || 30;
+      const month = req.query.month ? parseInt(req.query.month as string) : undefined;
+      const year = req.query.year ? parseInt(req.query.year as string) : undefined;
       
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
@@ -760,7 +762,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Safely handle errors in case the function fails
       try {
-        const bills = await storage.getUpcomingBills(userId, daysAhead);
+        let bills;
+        
+        if (month !== undefined && year !== undefined) {
+          // If month and year are provided, get bills for that month
+          bills = await storage.getBillsForMonth(userId, month, year);
+        } else {
+          // Otherwise use the traditional days ahead approach
+          bills = await storage.getUpcomingBills(userId, daysAhead);
+        }
+        
         res.status(200).json(bills);
       } catch (billError: any) {
         console.error("Error fetching upcoming bills:", billError);
@@ -826,6 +837,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(transactions);
     } catch (error) {
       res.status(400).json({ message: error.message });
+    }
+  });
+  
+  app.get(`${api}/transactions/monthly`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const month = parseInt(req.query.month as string);
+      const year = parseInt(req.query.year as string);
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      if (isNaN(userId) || isNaN(month) || isNaN(year)) {
+        return res.status(400).json({ message: "Invalid parameters" });
+      }
+      
+      const transactions = await storage.getMonthlyTransactions(userId, month, year);
+      
+      // Apply limit after getting all transactions
+      const limitedTransactions = transactions.slice(0, limit);
+      
+      res.status(200).json(limitedTransactions);
+    } catch (error) {
+      console.error("Error fetching monthly transactions:", error);
+      res.status(400).json({ message: "Error fetching monthly transactions" });
     }
   });
 

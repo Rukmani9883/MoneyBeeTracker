@@ -135,8 +135,16 @@ const Dashboard = ({ userId }: DashboardProps) => {
 
         {/* Recent Transactions & Upcoming Bills */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <RecentTransactions userId={userId} />
-          <UpcomingBills userId={userId} />
+          <RecentTransactions 
+            userId={userId} 
+            month={selectedMonth} 
+            year={selectedYear}
+          />
+          <UpcomingBills 
+            userId={userId}
+            month={selectedMonth} 
+            year={selectedYear}
+          />
         </div>
       </div>
     </>

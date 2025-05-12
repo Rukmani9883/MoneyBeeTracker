@@ -6,15 +6,25 @@ import { apiRequest } from "@/lib/queryClient";
 interface UpcomingBillsProps {
   userId: number;
   limit?: number;
+  month?: number;
+  year?: number;
 }
 
-const UpcomingBills = ({ userId, limit = 4 }: UpcomingBillsProps) => {
+const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) => {
   const queryClient = useQueryClient();
+  
+  // Get current month and year if not provided
+  const currentDate = new Date();
+  const selectedMonth = month !== undefined ? month : currentDate.getMonth();
+  const selectedYear = year !== undefined ? year : currentDate.getFullYear();
+  
+  // For API call we need to add 1 to month because JS months are 0-based
+  const apiMonth = selectedMonth + 1;
 
   const { data: bills, isLoading } = useQuery<Bill[]>({
-    queryKey: ['/api/bills/upcoming', { userId }],
+    queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }],
     queryFn: async () => {
-      const res = await fetch(`/api/bills/upcoming?userId=${userId}&daysAhead=30`);
+      const res = await fetch(`/api/bills/upcoming?userId=${userId}&month=${apiMonth}&year=${selectedYear}&daysAhead=30`);
       if (!res.ok) throw new Error('Failed to fetch bills');
       return res.json();
     }
