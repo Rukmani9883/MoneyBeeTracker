@@ -111,8 +111,8 @@ const RecentTransactions = ({ userId, limit = 4 }: RecentTransactionsProps) => {
               className={`flex items-center justify-between py-3 ${isLastItem ? '' : 'border-b border-[#2D2D2D]'}`}
             >
               <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full bg-[#2D2D2D]/60 flex items-center justify-center ${color} mr-3`}>
-                  {getCategoryIcon(transaction.category)}
+                <div className="mr-3">
+                  {getCategoryIcon(transaction.category, color)}
                 </div>
                 <div>
                   <p className="text-white text-sm font-medium">{transaction.description}</p>
