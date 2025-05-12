@@ -469,6 +469,12 @@ export class MemStorage implements IStorage {
   }
 
   async deleteDebt(id: number): Promise<boolean> {
+    const debt = this.debts.get(id);
+    if (!debt) return false;
+
+    // Delete all related transactions
+    await this.deleteRelatedTransactions(debt.userId, "expense", debt.name);
+    
     return this.debts.delete(id);
   }
 
@@ -513,6 +519,12 @@ export class MemStorage implements IStorage {
   }
 
   async deleteBill(id: number): Promise<boolean> {
+    const bill = this.bills.get(id);
+    if (!bill) return false;
+
+    // Delete all related transactions
+    await this.deleteRelatedTransactions(bill.userId, "expense", bill.name);
+    
     return this.bills.delete(id);
   }
 
@@ -549,6 +561,18 @@ export class MemStorage implements IStorage {
       recurring: false,
       frequency: null,
       notes: `Automatic expense created for bill payment`
+    });
+    
+    // Create a transaction record for the bill payment
+    await this.createTransaction({
+      userId: bill.userId,
+      date: new Date(),
+      type: "expense",
+      amount: bill.amount,
+      category: bill.category,
+      description: `Bill payment: ${bill.name}`,
+      sourceId: null,
+      destinationId: null
     });
     
     return updatedBill;
