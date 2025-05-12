@@ -8,7 +8,6 @@ import RecentTransactions from "@/components/RecentTransactions";
 import UpcomingBills from "@/components/UpcomingBills";
 import DateSelector from "@/components/DateSelector";
 import { ResetDataButton } from "@/components/ResetDataButton";
-import { ClearInitialDataButton } from "@/components/ClearInitialDataButton";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   SalaryIcon, 
@@ -117,8 +116,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             <h2 className="text-lg font-medium text-white">Filter by Period</h2>
             <DateSelector onDateChange={handleDateChange} />
           </div>
-          <div className="flex justify-end space-x-2">
-            <ClearInitialDataButton />
+          <div className="flex justify-end">
             <ResetDataButton />
           </div>
         </div>
