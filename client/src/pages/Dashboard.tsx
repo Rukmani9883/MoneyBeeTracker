@@ -7,6 +7,7 @@ import SavingsGoals from "@/components/SavingsGoals";
 import RecentTransactions from "@/components/RecentTransactions";
 import UpcomingBills from "@/components/UpcomingBills";
 import DateSelector from "@/components/DateSelector";
+import { ResetDataButton } from "@/components/ResetDataButton";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   SalaryIcon, 
@@ -65,9 +66,14 @@ const Dashboard = ({ userId }: DashboardProps) => {
       <Header title="Dashboard" userId={userId} />
       
       <div className="p-4 md:p-6 fade-in">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-white">Filter by Period</h2>
-          <DateSelector onDateChange={handleDateChange} />
+        <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <h2 className="text-lg font-medium text-white">Filter by Period</h2>
+            <DateSelector onDateChange={handleDateChange} />
+          </div>
+          <div className="flex justify-end">
+            <ResetDataButton />
+          </div>
         </div>
         
         {/* Financial Summary */}
