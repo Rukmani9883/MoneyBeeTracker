@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Transaction } from "@shared/schema";
 import { format } from "date-fns";
 import { getCategoryIcon } from "./CategoryIcons";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
 interface RecentTransactionsProps {
   userId: number;
@@ -32,17 +32,39 @@ const RecentTransactions = ({
   // Query key for the transactions
   const transactionsQueryKey = ['/api/transactions/monthly', { userId, month: apiMonth, year: selectedYear }];
   
+  // Define the refresh function to be reused
+  const refreshTransactions = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: transactionsQueryKey });
+  }, [queryClient, transactionsQueryKey]);
+  
   // Set up auto-refresh at regular intervals if enabled
   useEffect(() => {
     if (!autoRefresh) return;
     
     // Refresh data every 30 seconds to catch any changes
     const intervalId = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: transactionsQueryKey });
+      refreshTransactions();
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [autoRefresh, queryClient, transactionsQueryKey]);
+  }, [autoRefresh, refreshTransactions]);
+  
+  // Set up financial data change listener
+  useEffect(() => {
+    // Function to handle the financial data changed event
+    const handleFinancialDataChanged = () => {
+      console.log('Financial data changed, refreshing transactions');
+      refreshTransactions();
+    };
+    
+    // Add event listener
+    window.addEventListener('financial-data-changed', handleFinancialDataChanged);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('financial-data-changed', handleFinancialDataChanged);
+    };
+  }, [refreshTransactions]);
   
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: transactionsQueryKey,

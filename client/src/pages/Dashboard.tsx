@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import SummaryCard from "@/components/SummaryCard";
 import MonthlyOverview from "@/components/MonthlyOverview";
@@ -35,6 +35,7 @@ interface DashboardSummary {
 }
 
 const Dashboard = ({ userId }: DashboardProps) => {
+  const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   
@@ -42,6 +43,20 @@ const Dashboard = ({ userId }: DashboardProps) => {
   const handleDateChange = (month: number, year: number) => {
     setSelectedMonth(month);
     setSelectedYear(year);
+    
+    // When date changes, invalidate all queries that depend on it
+    // For API, we need month to be 1-based
+    const apiMonth = month + 1;
+    
+    // Invalidate transaction queries to force a refresh
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/transactions/monthly', { userId, month: apiMonth, year }]
+    });
+    
+    // Invalidate upcoming bills
+    queryClient.invalidateQueries({
+      queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year }]
+    });
   };
   
   const { data: summary, isLoading } = useQuery<DashboardSummary>({
@@ -56,7 +71,37 @@ const Dashboard = ({ userId }: DashboardProps) => {
     }
   });
 
-  // Removed auto-creation of demo data so users can enter their own data
+  // Effect to refresh data when a financial transaction is added/updated/deleted
+  useEffect(() => {
+    // Create event listener for custom events signaling financial data changes
+    const handleFinancialDataChange = () => {
+      // Invalidate all relevant queries to ensure fresh data
+      const apiMonth = selectedMonth + 1;
+      
+      // Invalidate dashboard summary
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/dashboard/summary', userId, selectedMonth, selectedYear]
+      });
+      
+      // Invalidate transactions
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/transactions/monthly', { userId, month: apiMonth, year: selectedYear }]
+      });
+      
+      // Invalidate upcoming bills
+      queryClient.invalidateQueries({
+        queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }]
+      });
+    };
+    
+    // Add listener for the custom event
+    window.addEventListener('financial-data-changed', handleFinancialDataChange);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('financial-data-changed', handleFinancialDataChange);
+    };
+  }, [queryClient, userId, selectedMonth, selectedYear]);
 
   // Empty monthly chart data (will be populated by user input)
   const monthlyData: { name: string; income: number; expenses: number; isCurrent: boolean }[] = [];

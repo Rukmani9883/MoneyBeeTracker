@@ -22,6 +22,7 @@ import { Loader2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format, parse } from "date-fns";
 import { useAnimation } from "@/components/animations/AnimationProvider";
+import { notifyFinancialDataChanged } from "../lib/eventUtils";
 
 interface TransactionFormProps {
   userId: number;
@@ -219,6 +220,10 @@ const TransactionForm = ({
           }
         );
       }
+      
+      // Notify the application that financial data has changed
+      // This will trigger updates in the dashboard and recent transactions
+      notifyFinancialDataChanged();
       
       if (onSuccess) {
         onSuccess();

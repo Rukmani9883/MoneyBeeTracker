@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bill } from "@shared/schema";
 import { format, differenceInDays } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import { useEffect, useCallback } from "react";
 
 interface UpcomingBillsProps {
   userId: number;
