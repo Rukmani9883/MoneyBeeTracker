@@ -1066,23 +1066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Endpoint to reset/clear all user data
-  app.post('/api/reset-data', isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.session.userId || 0;
-      
-      const success = await storage.clearAllData(userId);
-      
-      if (success) {
-        res.status(200).json({ message: "All user data has been cleared successfully" });
-      } else {
-        res.status(500).json({ message: "Failed to clear user data" });
-      }
-    } catch (error) {
-      console.error("Error clearing user data:", error);
-      res.status(500).json({ message: "An error occurred while clearing data" });
-    }
-  });
+
 
   const httpServer = createServer(app);
   return httpServer;
