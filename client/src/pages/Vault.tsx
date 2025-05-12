@@ -473,7 +473,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
         open={isAddingGoal} 
         onOpenChange={setIsAddingGoal}
       >
-        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md">
+        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Goal</DialogTitle>
             <DialogDescription className="text-[#CCCCCC]">
@@ -503,7 +503,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
           }
         }}
       >
-        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md">
+        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Funds to Goal</DialogTitle>
             <DialogDescription className="text-[#CCCCCC]">
@@ -582,7 +582,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
           }
         }}
       >
-        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md">
+        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Withdraw Funds from Goal</DialogTitle>
             <DialogDescription className="text-[#CCCCCC]">
