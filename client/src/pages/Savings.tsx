@@ -413,7 +413,7 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
         open={isSettingGoal} 
         onOpenChange={setIsSettingGoal}
       >
-        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md">
+        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Set Monthly Savings Goal</DialogTitle>
             <DialogDescription className="text-[#CCCCCC]">

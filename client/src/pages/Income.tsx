@@ -388,7 +388,7 @@ const IncomePage = ({ userId }: IncomePageProps) => {
           }
         }}
       >
-        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md">
+        <DialogContent className="bg-[#1E1E1E] border-[#2D2D2D] text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingIncome ? 'Edit Income' : 'Add Income'}</DialogTitle>
             <DialogDescription className="text-[#CCCCCC]">
