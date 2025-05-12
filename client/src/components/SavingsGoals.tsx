@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import ProgressBar from "./ProgressBar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,16 +26,42 @@ const SavingsGoals = ({ userId }: SavingsGoalsProps) => {
   // Limit to top 3 goals for the dashboard view
   const topGoals = goals?.slice(0, 3) || [];
   
+  // Function to refresh goals data
+  const refreshGoals = useCallback(() => {
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/vault-goals']
+    });
+  }, [queryClient]);
+  
+  // Listen for financial data changes
+  useEffect(() => {
+    const handleFinancialDataChanged = () => {
+      console.log('Financial data changed, refreshing goals');
+      refreshGoals();
+    };
+    
+    // Add event listener
+    window.addEventListener('financial-data-changed', handleFinancialDataChanged);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('financial-data-changed', handleFinancialDataChanged);
+    };
+  }, [refreshGoals]);
+  
   // Create demo data if none exists
   useEffect(() => {
     if (goals?.length === 0) {
-      apiRequest('POST', `/api/demo-data?userId=${userId}`, {})
+      apiRequest(`/api/demo-data?userId=${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      })
         .then(() => {
-          queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+          refreshGoals();
         })
         .catch(console.error);
     }
-  }, [goals, userId, queryClient]);
+  }, [goals, userId, refreshGoals]);
 
   if (isLoading) {
     return (

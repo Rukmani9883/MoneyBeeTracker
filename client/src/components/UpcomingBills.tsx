@@ -33,6 +33,30 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
     }
   });
 
+  // Define the refresh function to be reused
+  const refreshBills = useCallback(() => {
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }]
+    });
+  }, [queryClient, userId, apiMonth, selectedYear]);
+  
+  // Set up financial data change listener
+  useEffect(() => {
+    // Function to handle the financial data changed event
+    const handleFinancialDataChanged = () => {
+      console.log('Financial data changed, refreshing upcoming bills');
+      refreshBills();
+    };
+    
+    // Add event listener
+    window.addEventListener('financial-data-changed', handleFinancialDataChanged);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('financial-data-changed', handleFinancialDataChanged);
+    };
+  }, [refreshBills]);
+
   const markAsPaidMutation = useMutation({
     mutationFn: async (billId: number) => {
       return apiRequest(`/api/bills/${billId}/mark-paid`, {
@@ -41,8 +65,10 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/bills/upcoming'] });
+      refreshBills();
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      // Trigger event to notify other components
+      window.dispatchEvent(new CustomEvent('financial-data-changed'));
     }
   });
 

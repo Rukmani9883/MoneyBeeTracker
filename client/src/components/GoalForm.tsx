@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
 import { addMonths, format } from "date-fns";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 interface GoalFormProps {
   userId: number;
@@ -69,7 +70,13 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         notes: values.notes,
       };
       
-      await apiRequest("POST", "/api/vault-goals", goalData);
+      await apiRequest("/api/vault-goals", {
+        method: "POST",
+        body: JSON.stringify(goalData)
+      });
+      
+      // Dispatch the financial data changed event to notify all components
+      window.dispatchEvent(new CustomEvent('financial-data-changed'));
       
       toast({
         title: "Goal Created",
