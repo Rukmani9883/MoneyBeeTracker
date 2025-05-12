@@ -70,7 +70,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
           <SummaryCard
             title="Total Income"
             amount={summary?.totalIncome || 0}
-            percentChange={12}
             icon={<SalaryIcon color="text-[#FFD700]" />}
             iconColor=""
           />
@@ -78,7 +77,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
           <SummaryCard
             title="Total Expenses"
             amount={summary?.totalExpenses || 0}
-            percentChange={8}
             icon={<ShoppingIcon color="text-[#F44336]" />}
             iconColor=""
           />
@@ -86,7 +84,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
           <SummaryCard
             title="Savings"
             amount={summary?.savings || 0}
-            percentChange={18}
             icon={<InvestmentIcon color="text-[#4CAF50]" />}
             iconColor=""
           />
@@ -94,7 +91,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
           <SummaryCard
             title="Vault"
             amount={summary?.totalVault || 0}
-            percentChange={4}
             icon={<InvestmentIcon color="text-[#FFD700]" />}
             iconColor=""
           />
@@ -102,7 +98,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
           <SummaryCard
             title="Debt"
             amount={summary?.totalDebts || 0}
-            percentChange={-5}
             icon={<OtherIcon color="text-[#FF9800]" />}
             iconColor=""
           />
@@ -110,7 +105,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
           <SummaryCard
             title="EMI & Bills"
             amount={summary?.totalBills || 0}
-            percentChange={0}
             icon={<UtilitiesIcon color="text-[#2196F3]" />}
             iconColor=""
           />
