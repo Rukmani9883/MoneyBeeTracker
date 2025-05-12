@@ -165,30 +165,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get(`${api}/auth/user`, isAuthenticated, async (req: Request, res: Response) => {
     try {
+      console.log("Get user profile - Session ID:", req.sessionID);
+      console.log("Get user profile - User ID from session:", req.session.userId);
+      
       const userId = req.session.userId;
+      if (!userId) {
+        console.log("No user ID in session");
+        return res.status(401).json({ message: "No user associated with this session" });
+      }
+      
+      console.log("Retrieving user with ID:", userId);
       const user = await storage.getUser(userId);
       
       if (!user) {
+        console.log("User not found in database:", userId);
         return res.status(404).json({ message: "User not found" });
       }
+      
+      console.log("User found:", user.id, user.username);
       
       // Don't return password in response
       const { password, ...userWithoutPassword } = user;
       
       res.status(200).json(userWithoutPassword);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: any) {
+      console.error("Error retrieving user profile:", error);
+      res.status(400).json({ message: error.message || "Error retrieving user" });
     }
   });
   
   app.post(`${api}/auth/logout`, (req: Request, res: Response) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to logout" });
-      }
-      res.clearCookie('connect.sid');
-      res.status(200).json({ message: "Logged out successfully" });
-    });
+    console.log("Logout request");
+    if (req.session) {
+      const sessionID = req.sessionID;
+      console.log("Session ID being destroyed:", sessionID);
+      
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+          return res.status(500).json({ message: "Failed to logout" });
+        }
+        
+        // Clear the cookie using the same name set in the session config
+        res.clearCookie('moneybee.sid');
+        console.log("Logout successful, cookie cleared");
+        res.status(200).json({ message: "Logged out successfully" });
+      });
+    } else {
+      console.log("No session to destroy");
+      res.status(200).json({ message: "Already logged out" });
+    }
   });
   
   // Add reset data route
@@ -324,10 +350,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const expenses = await storage.getExpenses(userId);
-      res.status(200).json(expenses);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+      // Check if month and year are provided for filtering
+      // Note: Frontend sends 1-based month, but JS Date uses 0-based month
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) - 1 : undefined;
+      const year = req.query.year !== undefined ? parseInt(req.query.year as string) : undefined;
+      
+      let expenses;
+      
+      try {
+        // Get all expenses first
+        expenses = await storage.getExpenses(userId);
+        
+        // If month and year are provided, filter the expenses
+        if (month !== undefined && year !== undefined && !isNaN(month) && !isNaN(year) && month >= 0 && month < 12) {
+          console.log(`Filtering expenses for month ${month + 1} and year ${year}`);
+          
+          // Filter expenses by date in the specified month and year
+          expenses = expenses.filter(expense => {
+            if (!expense.date) return false;
+            
+            const expenseDate = new Date(expense.date);
+            return expenseDate.getMonth() === month && expenseDate.getFullYear() === year;
+          });
+        }
+        
+        return res.status(200).json(expenses);
+      } catch (err: any) {
+        console.error("Error processing expenses:", err);
+        return res.status(200).json([]); // Return empty array on error
+      }
+    } catch (error: any) {
+      console.error("Error in expenses endpoint:", error);
+      res.status(400).json({ message: error.message || "Error retrieving expenses" });
     }
   });
 
