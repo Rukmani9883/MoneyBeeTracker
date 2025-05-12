@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import SummaryCard from "@/components/SummaryCard";
@@ -6,6 +6,7 @@ import MonthlyOverview from "@/components/MonthlyOverview";
 import SavingsGoals from "@/components/SavingsGoals";
 import RecentTransactions from "@/components/RecentTransactions";
 import UpcomingBills from "@/components/UpcomingBills";
+import DateSelector from "@/components/DateSelector";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   SalaryIcon, 
@@ -33,10 +34,19 @@ interface DashboardSummary {
 }
 
 const Dashboard = ({ userId }: DashboardProps) => {
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  
+  // Handle date change from DateSelector
+  const handleDateChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
+  
   const { data: summary, isLoading } = useQuery<DashboardSummary>({
-    queryKey: ['/api/dashboard/summary', { userId }],
+    queryKey: ['/api/dashboard/summary', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/dashboard/summary?userId=${userId}`);
+      const res = await fetch(`/api/dashboard/summary?userId=${userId}&month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch dashboard summary');
       return res.json();
     }
@@ -52,6 +62,11 @@ const Dashboard = ({ userId }: DashboardProps) => {
       <Header title="Dashboard" userId={userId} />
       
       <div className="p-4 md:p-6 fade-in">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-white">Filter by Period</h2>
+          <DateSelector onDateChange={handleDateChange} />
+        </div>
+        
         {/* Financial Summary */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <SummaryCard

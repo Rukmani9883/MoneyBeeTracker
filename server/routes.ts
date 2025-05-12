@@ -824,9 +824,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
+      // Get month and year from query params if provided, otherwise use current date
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : new Date().getMonth();
+      const year = req.query.year !== undefined ? parseInt(req.query.year as string) : new Date().getFullYear();
+      
+      if (isNaN(month) || isNaN(year)) {
+        return res.status(400).json({ message: "Invalid month or year" });
+      }
+      
       const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
+      const currentMonth = month;
+      const currentYear = year;
       
       // Get total income for current month
       const totalIncome = await storage.getTotalIncome(userId, currentMonth, currentYear);
