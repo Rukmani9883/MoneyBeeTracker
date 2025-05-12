@@ -53,19 +53,16 @@ export default function Login() {
         console.log("Session information received:", data.sessionInfo);
       }
       
-      // Force a refetch of the user data from the server
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      
-      // Wait a moment for the query to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       toast({
         title: "Success",
-        description: "You have been logged in successfully",
+        description: "Login successful, redirecting...",
       });
       
-      // Navigate to dashboard
-      navigate("/dashboard");
+      // Instead of navigating, do a full page reload to reset all cookies and state
+      // This is more reliable than trying to update the React state
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
     } catch (error: any) {
       toast({
         title: "Error",
