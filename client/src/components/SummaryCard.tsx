@@ -1,11 +1,14 @@
+import { Link } from "wouter";
+
 interface SummaryCardProps {
   title: string;
   amount: number;
   icon: React.ReactNode;
   iconColor: string;
+  linkTo?: string; // Optional path to navigate to when clicked
 }
 
-const SummaryCard = ({ title, amount, icon, iconColor }: SummaryCardProps) => {
+const SummaryCard = ({ title, amount, icon, iconColor, linkTo }: SummaryCardProps) => {
   const formattedAmount = new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
     currency: 'INR',
@@ -13,8 +16,8 @@ const SummaryCard = ({ title, amount, icon, iconColor }: SummaryCardProps) => {
     maximumFractionDigits: 2
   }).format(amount);
 
-  return (
-    <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg">
+  const content = (
+    <>
       <div className="flex justify-between items-start mb-3">
         <div className="text-[#CCCCCC] font-medium text-sm">{title}</div>
         <div className={iconColor ? iconColor : ""}>
@@ -22,6 +25,18 @@ const SummaryCard = ({ title, amount, icon, iconColor }: SummaryCardProps) => {
         </div>
       </div>
       <div className="font-mono font-medium text-xl text-white">{formattedAmount}</div>
+    </>
+  );
+
+  return linkTo ? (
+    <Link href={linkTo}>
+      <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg cursor-pointer transform transition-transform hover:scale-[1.02] hover:shadow-xl">
+        {content}
+      </div>
+    </Link>
+  ) : (
+    <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg">
+      {content}
     </div>
   );
 };

@@ -59,6 +59,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             amount={summary?.totalIncome || 0}
             icon={<SalaryIcon color="text-[#FFD700]" />}
             iconColor=""
+            linkTo="/income"
           />
           
           <SummaryCard
