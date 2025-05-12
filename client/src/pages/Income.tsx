@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import TransactionForm from "@/components/TransactionForm";
+import DateSelector from "@/components/DateSelector";
 import { 
   Dialog, 
   DialogContent, 
@@ -46,19 +47,26 @@ const IncomePage = ({ userId }: IncomePageProps) => {
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [deletingIncomeId, setDeletingIncomeId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: incomes, isLoading, refetch } = useQuery<Income[]>({
-    queryKey: ['/api/incomes'],
+    queryKey: ['/api/incomes', selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/incomes?userId=${userId}`);
+      const res = await fetch(`/api/incomes?userId=${userId}&month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch incomes');
       return res.json();
     },
     refetchOnMount: true,
     staleTime: 0,
   });
+  
+  const handleDateChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
 
   const deleteIncomeMutation = useMutation({
     mutationFn: async (incomeId: number) => {
@@ -123,6 +131,11 @@ const IncomePage = ({ userId }: IncomePageProps) => {
       <Header title="Income" userId={userId} />
       
       <div className="p-4 md:p-6 fade-in">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-white">Filter by Period</h2>
+          <DateSelector onDateChange={handleDateChange} />
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <Card className="bg-[#1E1E1E] border-[#2D2D2D] col-span-1 lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
