@@ -117,7 +117,8 @@ const Dashboard = ({ userId }: DashboardProps) => {
             <h2 className="text-lg font-medium text-white">Filter by Period</h2>
             <DateSelector onDateChange={handleDateChange} />
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-2">
+            <ClearInitialDataButton />
             <ResetDataButton />
           </div>
         </div>
