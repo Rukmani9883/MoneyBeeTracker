@@ -267,10 +267,78 @@ const IncomePage = ({ userId }: IncomePageProps) => {
                 </TabsContent>
                 
                 <TabsContent value="monthly" className="mt-4">
-                  <div className="text-center py-10 text-[#CCCCCC]">
-                    <p className="text-lg mb-2">Monthly view coming soon</p>
-                    <p className="text-sm text-[#999999]">This feature is under development</p>
-                  </div>
+                  {isLoading ? (
+                    <div className="animate-pulse">
+                      <div className="h-8 bg-[#2D2D2D] rounded w-full mb-4"></div>
+                      <div className="h-8 bg-[#2D2D2D] rounded w-full mb-4"></div>
+                      <div className="h-8 bg-[#2D2D2D] rounded w-full mb-4"></div>
+                    </div>
+                  ) : incomes && incomes.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg text-white">Monthly Income Breakdown</h3>
+                        <Button 
+                          className="bg-[#FFD700] text-[#121212] hover:bg-[#E6C200]"
+                          onClick={() => setShowAddForm(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Income
+                        </Button>
+                      </div>
+                      
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {incomes.map((income) => (
+                          <div key={income.id} className="bg-[#2D2D2D] rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-medium text-white">{income.name}</h4>
+                                <p className="text-[#CCCCCC] text-sm">{income.category}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-mono text-[#4CAF50] text-lg">₹{income.amount.toLocaleString()}</p>
+                                <p className="text-[#999999] text-xs">{formatDateRelative(income.date)}</p>
+                              </div>
+                            </div>
+                            {income.notes && (
+                              <p className="text-[#CCCCCC] text-sm mt-2 bg-[#222] p-2 rounded">{income.notes}</p>
+                            )}
+                            <div className="flex justify-end mt-3 space-x-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 text-[#CCCCCC] hover:text-white hover:bg-[#3D3D3D]"
+                                onClick={() => setEditingIncome(income)}
+                              >
+                                <Pencil className="h-3.5 w-3.5 mr-1" />
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 text-[#CCCCCC] hover:text-[#F44336] hover:bg-[#3D3D3D]"
+                                onClick={() => setDeletingIncomeId(income.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 text-[#CCCCCC]">
+                      <p className="text-lg mb-2">No income records for this month</p>
+                      <p className="text-sm text-[#999999]">Add income transactions to track your finances</p>
+                      <Button 
+                        className="mt-4 bg-[#FFD700] text-[#121212] hover:bg-[#E6C200]"
+                        onClick={() => setShowAddForm(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Income
+                      </Button>
+                    </div>
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="recurring" className="mt-4">
