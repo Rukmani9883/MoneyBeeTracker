@@ -683,87 +683,193 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get(`${api}/vault-goals/:id`, async (req: Request, res: Response) => {
     try {
+      console.log(`GET ${api}/vault-goals/${req.params.id} request`);
+      
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        console.error(`Invalid goal ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid goal ID" });
+      }
+      
+      console.log(`Fetching vault goal with ID ${id}`);
       const goal = await storage.getVaultGoalById(id);
       
       if (!goal) {
+        console.log(`Goal with ID ${id} not found`);
         return res.status(404).json({ message: "Goal not found" });
       }
       
-      res.status(200).json(goal);
+      console.log(`Retrieved goal: ${goal.id} - ${goal.name}`);
+      return res.status(200).json(goal);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error(`Error in GET ${api}/vault-goals/:id:`, error);
+      return res.status(500).json({ message: error.message || "Internal server error" });
     }
   });
 
   app.put(`${api}/vault-goals/:id`, async (req: Request, res: Response) => {
     try {
+      console.log(`PUT ${api}/vault-goals/${req.params.id} request with body:`, req.body);
+      
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        console.error(`Invalid goal ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid goal ID" });
+      }
+      
       const goalData = req.body;
+      console.log(`Updating vault goal with ID ${id}`);
+      
       const updatedGoal = await storage.updateVaultGoal(id, goalData);
       
       if (!updatedGoal) {
         return res.status(404).json({ message: "Goal not found" });
       }
       
-      res.status(200).json(updatedGoal);
+      // Get the updated list of all goals after updating
+      const allGoals = await storage.getVaultGoals(updatedGoal.userId);
+      console.log(`After update: Retrieved ${allGoals.length} vault goals for user ${updatedGoal.userId}`);
+      
+      return res.status(200).json(updatedGoal);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error(`Error in PUT ${api}/vault-goals/:id:`, error);
+      return res.status(500).json({ message: error.message || "Failed to update goal" });
     }
   });
 
   app.delete(`${api}/vault-goals/:id`, async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteVaultGoal(id);
+      console.log(`DELETE ${api}/vault-goals/${req.params.id} request`);
       
-      if (!success) {
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        console.error(`Invalid goal ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid goal ID" });
+      }
+      
+      // Get the goal to know user ID before deletion
+      const goal = await storage.getVaultGoalById(id);
+      if (!goal) {
+        console.log(`Goal with ID ${id} not found for deletion`);
         return res.status(404).json({ message: "Goal not found" });
       }
       
-      res.status(204).send();
+      console.log(`Deleting vault goal with ID ${id} for user ${goal.userId}`);
+      const success = await storage.deleteVaultGoal(id);
+      
+      if (!success) {
+        console.error(`Failed to delete goal with ID ${id}`);
+        return res.status(404).json({ message: "Goal not found or couldn't be deleted" });
+      }
+      
+      console.log(`Successfully deleted goal with ID ${id}`);
+      
+      // Get the updated list of all goals after deletion
+      const allGoals = await storage.getVaultGoals(goal.userId);
+      console.log(`After deletion: Retrieved ${allGoals.length} vault goals for user ${goal.userId}`);
+      
+      return res.status(204).send();
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error(`Error in DELETE ${api}/vault-goals/:id:`, error);
+      return res.status(500).json({ message: error.message || "Failed to delete goal" });
     }
   });
 
   app.post(`${api}/vault-goals/:id/add-funds`, async (req: Request, res: Response) => {
     try {
+      console.log(`POST ${api}/vault-goals/${req.params.id}/add-funds request with body:`, req.body);
+      
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        console.error(`Invalid goal ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid goal ID" });
+      }
+      
       const { amount } = req.body;
       
       if (!amount || isNaN(amount) || amount <= 0) {
+        console.error(`Invalid amount: ${amount}`);
         return res.status(400).json({ message: "Invalid amount" });
       }
       
+      console.log(`Adding ${amount} funds to goal ${id}`);
       const updatedGoal = await storage.addFundsToGoal(id, amount);
       
       if (!updatedGoal) {
+        console.error(`Goal with ID ${id} not found for adding funds`);
         return res.status(404).json({ message: "Goal not found" });
       }
       
-      res.status(200).json(updatedGoal);
+      console.log(`Successfully added funds to goal ${id}. New amount: ${updatedGoal.currentAmount}`);
+      
+      // Get the updated list of all goals after adding funds
+      const allGoals = await storage.getVaultGoals(updatedGoal.userId);
+      console.log(`After adding funds: Retrieved ${allGoals.length} vault goals for user ${updatedGoal.userId}`);
+      
+      return res.status(200).json(updatedGoal);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error(`Error in POST ${api}/vault-goals/:id/add-funds:`, error);
+      return res.status(500).json({ message: error.message || "Failed to add funds" });
     }
   });
 
   app.post(`${api}/vault-goals/:id/withdraw-funds`, async (req: Request, res: Response) => {
     try {
+      console.log(`POST ${api}/vault-goals/${req.params.id}/withdraw-funds request with body:`, req.body);
+      
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        console.error(`Invalid goal ID: ${req.params.id}`);
+        return res.status(400).json({ message: "Invalid goal ID" });
+      }
+      
       const { amount } = req.body;
       
       if (!amount || isNaN(amount) || amount <= 0) {
+        console.error(`Invalid amount for withdrawal: ${amount}`);
         return res.status(400).json({ message: "Invalid amount" });
       }
       
+      console.log(`Withdrawing ${amount} funds from goal ${id}`);
       const updatedGoal = await storage.withdrawFundsFromGoal(id, amount);
       
       if (!updatedGoal) {
+        console.error(`Goal with ID ${id} not found or has insufficient funds`);
         return res.status(404).json({ message: "Goal not found or insufficient funds" });
       }
       
-      res.status(200).json(updatedGoal);
+      console.log(`Successfully withdrew funds from goal ${id}. New amount: ${updatedGoal.currentAmount}`);
+      
+      // Get the updated list of all goals after withdrawing funds
+      const allGoals = await storage.getVaultGoals(updatedGoal.userId);
+      console.log(`After withdrawing funds: Retrieved ${allGoals.length} vault goals for user ${updatedGoal.userId}`);
+      
+      return res.status(200).json(updatedGoal);
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
