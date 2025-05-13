@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -51,14 +51,15 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [fundAmount, setFundAmount] = useState("");
   const [deletingGoalId, setDeletingGoalId] = useState<number | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Get vault goals with direct API call to ensure fresh data
   const { data: goals, isLoading, refetch } = useQuery<VaultGoal[]>({
-    queryKey: ['/api/vault-goals', userId],
+    queryKey: ['/api/vault-goals', userId, forceRefresh],
     queryFn: async () => {
-      console.log(`Fetching vault goals for user ${userId}...`);
+      console.log(`Fetching vault goals for user ${userId}... (refresh: ${forceRefresh})`);
       
       try {
         // Force a fresh request with no caching
@@ -91,6 +92,47 @@ const VaultPage = ({ userId }: VaultPageProps) => {
     retry: 3, // Retry failed requests up to 3 times
   });
 
+  // Force a manual refresh on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log("Component mounted - forcing initial data load");
+      try {
+        // Clear any cache for this query
+        await queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+        
+        // Manually trigger a direct API call
+        const res = await fetch(`/api/vault-goals?userId=${userId}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          console.error("Initial data fetch failed:", await res.text());
+          return;
+        }
+        
+        const data = await res.json();
+        console.log("Initial vault goals data:", data);
+        
+        // Force query refetch after manual data retrieval
+        refetch();
+        
+        // Set timeout to trigger another refresh after UI rendering
+        setTimeout(() => {
+          setForceRefresh(prev => prev + 1);
+        }, 1000);
+      } catch (error) {
+        console.error("Error in initial data fetch:", error);
+      }
+    };
+    
+    fetchData();
+  }, [userId, queryClient, refetch]);
+  
   // Add funds mutation
   const addFundsMutation = useMutation({
     mutationFn: async ({ goalId, amount }: { goalId: number, amount: number }) => {
