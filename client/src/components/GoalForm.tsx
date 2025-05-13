@@ -92,15 +92,34 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         variant: "default",
       });
       
-      // Force refresh queries
-      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      // Force refresh queries with specific waitFor to ensure data is refreshed before UI updates
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/vault-goals'],
+        refetchType: 'active',
+      });
       
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/dashboard/summary'],
+        refetchType: 'active',
+      });
+      
+      // Wait a moment to allow the queries to complete their refresh
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log("Queries invalidated after goal creation");
+      
+      // Call the success callback with the created goal data if provided
       if (onSuccess) {
         onSuccess();
       } else {
         onClose();
       }
+      
+      // Add a delayed refresh to ensure UI updates after the modal closes
+      setTimeout(() => {
+        console.log("Performing delayed query invalidation");
+        queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+      }, 1000);
     } catch (error: any) {
       console.error("Error creating goal:", error);
       toast({

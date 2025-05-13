@@ -259,16 +259,33 @@ const VaultPage = ({ userId }: VaultPageProps) => {
       // Notify all components that financial data has changed
       notifyFinancialDataChanged();
       
-      // Force refresh data immediately
+      // Force refresh data immediately with specific refetchType for more aggressive refresh
       console.log("Invalidating queries after deletion");
-      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/vault-goals'],
+        refetchType: 'active',
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/dashboard/summary'],
+        refetchType: 'active', 
+      });
       
       // Manually refetch data to ensure UI updates
       refetch();
       
+      // Trigger force refresh via state update
+      setForceRefresh(prev => prev + 1);
+      
       // Close the confirmation dialog
       setDeletingGoalId(null);
+      
+      // Add a delayed refresh as additional safeguard
+      setTimeout(() => {
+        console.log("Performing delayed refresh after deletion");
+        refetch();
+        setForceRefresh(prev => prev + 1);
+      }, 1000);
     },
     onError: (error) => {
       console.error("Delete mutation failed:", error);
@@ -628,8 +645,25 @@ const VaultPage = ({ userId }: VaultPageProps) => {
             userId={userId} 
             onClose={() => setIsAddingGoal(false)}
             onSuccess={() => {
+              console.log("Goal created successfully, refreshing data");
+              // Close the dialog first
               setIsAddingGoal(false);
+              
+              // Force a thorough refresh of all relevant queries
               queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+              
+              // Manual refetch after a delay to ensure the component re-renders
+              setTimeout(() => {
+                console.log("Executing delayed refetch after goal creation");
+                refetch();
+                
+                // Trigger a forced refresh via state update
+                setForceRefresh(prev => prev + 1);
+                
+                // Notify other components of the data change
+                notifyFinancialDataChanged();
+              }, 500);
             }}
           />
         </DialogContent>
