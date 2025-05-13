@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -56,21 +57,31 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
     },
   });
 
+  const queryClient = useQueryClient();
+  
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
+      
+      console.log("Submitting form with values:", values);
       
       const goalData = {
         userId: values.userId,
         name: values.name,
         targetAmount: parseFloat(values.targetAmount),
         currentAmount: values.currentAmount ? parseFloat(values.currentAmount) : 0,
-        deadline: values.deadline ? new Date(values.deadline) : undefined,
-        notes: values.notes,
+        deadline: values.deadline || undefined,
+        notes: values.notes || "",
       };
       
-      await apiRequest("POST", "/api/vault-goals", goalData);
+      console.log("Formatted goal data for API:", goalData);
+      
+      // Make sure we have the correct userId
+      console.log("Using userId:", goalData.userId);
+      
+      const response = await apiRequest("POST", "/api/vault-goals", goalData);
+      console.log("API response:", response);
       
       // Notify all components that financial data has changed
       notifyFinancialDataChanged();
@@ -81,12 +92,17 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         variant: "default",
       });
       
+      // Force refresh queries
+      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      
       if (onSuccess) {
         onSuccess();
       } else {
         onClose();
       }
     } catch (error: any) {
+      console.error("Error creating goal:", error);
       toast({
         title: "Error",
         description: `Failed to create goal: ${error.message || "Unknown error"}`,
