@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Debt } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -149,6 +149,12 @@ const DebtForm = ({
       
       // Notify all components that financial data has changed
       notifyFinancialDataChanged();
+      
+      // Invalidate queries to ensure data is refreshed
+      queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
       
       if (onSuccess) {
         onSuccess();

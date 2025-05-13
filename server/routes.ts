@@ -917,12 +917,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Filtering debts for month ${month + 1} and year ${year}`);
           
           // Filter debts by due date in the specified month and year
+          // Always include debts without a due date as they're considered "current" debts
+          console.log("Before filtering, debts count:", debts.length);
           debts = debts.filter(debt => {
-            if (!debt.dueDate) return true; // Include debts without due dates
+            // Always include debts without due dates
+            if (!debt.dueDate) {
+              console.log("Including debt without due date:", debt.id, debt.name);
+              return true;
+            }
             
             const dueDate = new Date(debt.dueDate);
-            return dueDate.getMonth() === month && dueDate.getFullYear() === year;
+            const result = dueDate.getMonth() === month && dueDate.getFullYear() === year;
+            if (result) {
+              console.log("Including debt with matching due date:", debt.id, debt.name);
+            }
+            return result;
           });
+          console.log("After filtering, debts count:", debts.length);
         }
         
         return res.status(200).json(debts);

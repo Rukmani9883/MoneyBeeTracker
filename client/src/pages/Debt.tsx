@@ -118,8 +118,13 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   }) || [];
 
   // Calculate total debt amounts
-  const totalYouOwe = debts?.filter(d => d.isOwedByUser).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
-  const totalOwedToYou = debts?.filter(d => !d.isOwedByUser).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
+  // Make sure to use the actual debts array and not filtered ones for the totals
+  const totalYouOwe = debts?.filter(d => d.isOwedByUser === true).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
+  const totalOwedToYou = debts?.filter(d => d.isOwedByUser === false).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
+  
+  // Log debt values for debugging
+  console.log("Total debts:", debts?.length);
+  console.log("You Owe:", totalYouOwe, "Owed to You:", totalOwedToYou);
 
   // Data for pie chart (by category)
   const getPieChartData = (isOwedByUser: boolean) => {
