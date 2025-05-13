@@ -138,10 +138,11 @@ const BillForm = ({
       
       if (bill) {
         // Update existing bill
-        await apiRequest(`/api/bills/${bill.id}`, {
-          method: "PUT",
-          body: JSON.stringify(billData)
-        });
+        await apiRequest(
+          "PUT",
+          `/api/bills/${bill.id}`,
+          billData
+        );
         toast({
           title: "Success",
           description: "Bill updated successfully.",
@@ -149,10 +150,11 @@ const BillForm = ({
         });
       } else {
         // Create new bill
-        await apiRequest("/api/bills", {
-          method: "POST",
-          body: JSON.stringify(billData)
-        });
+        await apiRequest(
+          "POST",
+          "/api/bills",
+          billData
+        );
         toast({
           title: "Success",
           description: "Bill added successfully.",

@@ -96,9 +96,11 @@ const BillsPage = ({ userId }: BillsPageProps) => {
   // Delete bill mutation
   const deleteBillMutation = useMutation({
     mutationFn: async (billId: number) => {
-      return apiRequest(`/api/bills/${billId}`, {
-        method: 'DELETE'
-      });
+      return apiRequest(
+        'DELETE',
+        `/api/bills/${billId}`,
+        null
+      );
     },
     onSuccess: () => {
       toast({
@@ -125,9 +127,11 @@ const BillsPage = ({ userId }: BillsPageProps) => {
   // Mark bill as paid mutation
   const markAsPaidMutation = useMutation({
     mutationFn: async (billId: number) => {
-      return apiRequest(`/api/bills/${billId}/mark-paid`, {
-        method: 'POST'
-      });
+      return apiRequest(
+        'POST',
+        `/api/bills/${billId}/mark-paid`,
+        null
+      );
     },
     onSuccess: () => {
       toast({
