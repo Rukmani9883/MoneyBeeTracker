@@ -60,59 +60,16 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   const queryClient = useQueryClient();
 
   // Get all debts with date filtering
-  const { data: debts = [], isLoading, refetch } = useQuery<Debt[]>({
+  const { data: debts, isLoading } = useQuery<Debt[]>({
     queryKey: ['/api/debts', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      console.log("Fetching debts...");
-      
-      // Add cache busting to prevent caching issues
-      const timestamp = new Date().getTime();
-      
-      // Add headers to prevent browser caching
-      const requestOptions = {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      };
-      
       // For JavaScript, months are 0-based (0 = January, 11 = December)
       // But the API expects 1-based months, so we add 1 to selectedMonth
       const jsMonth = selectedMonth + 1;
-      const res = await fetch(`/api/debts?userId=${userId}&nocache=${timestamp}`, requestOptions);
-      
-      if (!res.ok) {
-        console.error("Failed to fetch debts:", await res.text());
-        throw new Error('Failed to fetch debts');
-      }
-      
-      const allDebts = await res.json();
-      console.log("All debts fetched:", allDebts);
-      
-      // Make sure each debt has a valid isOwedByUser property
-      const processedDebts = allDebts.map((debt: Debt) => {
-        // Ensure isOwedByUser is a proper boolean
-        if (debt.isOwedByUser === undefined || debt.isOwedByUser === null) {
-          debt.isOwedByUser = false; // Default to false if not set
-        }
-        return debt;
-      });
-      
-      console.log("Processed debts with validated isOwedByUser:", processedDebts);
-      
-      // Filter locally for debts without due dates or with matching date
-      return processedDebts.filter((debt: Debt) => {
-        // Always include debts without due dates
-        if (!debt.dueDate) return true;
-        
-        const dueDate = new Date(debt.dueDate);
-        return dueDate.getMonth() === selectedMonth && dueDate.getFullYear() === selectedYear;
-      });
-    },
-    refetchOnWindowFocus: true,
-    staleTime: 0, // No stale time to always refetch fresh data
-    refetchInterval: 2000 // Automatically refetch every 2 seconds to ensure data is fresh
+      const res = await fetch(`/api/debts?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
+      if (!res.ok) throw new Error('Failed to fetch debts');
+      return res.json();
+    }
   });
   
   const handleDateChange = (month: number, year: number) => {
@@ -123,7 +80,9 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   // Delete debt mutation
   const deleteDebtMutation = useMutation({
     mutationFn: async (debtId: number) => {
-      return apiRequest("DELETE", `/api/debts/${debtId}`);
+      return apiRequest(`/api/debts/${debtId}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       toast({
@@ -131,17 +90,10 @@ const DebtPage = ({ userId }: DebtPageProps) => {
         description: "The debt record has been removed successfully.",
         variant: "default",
       });
-      // Invalidate all debt-related queries by not providing specific parameters
       queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
-      // Also invalidate the specific query with current filters
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/debts', userId, selectedMonth, selectedYear] 
-      });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
-      // Force an immediate refetch
-      refetch();
       setDeletingDebtId(null);
     },
     onError: (error) => {
@@ -159,62 +111,15 @@ const DebtPage = ({ userId }: DebtPageProps) => {
     }
   };
 
-  // IMPORTANT: We need to ensure the debts array is properly processed before
-  // any filtering. The debts array could be empty or have debts with undefined/null
-  // isOwedByUser fields. We will ensure this is handled correctly.
-  
-  // First, create a safe version of the debts array with proper boolean values
-  const processedDebts = debts.map(debt => {
-    // Create a copy of the debt to avoid direct mutation
-    const processedDebt = { ...debt };
-    
-    // Convert isOwedByUser to a proper boolean if it's null or undefined
-    if (processedDebt.isOwedByUser === null || processedDebt.isOwedByUser === undefined) {
-      processedDebt.isOwedByUser = false; // Default to false if not set
-    }
-    
-    return processedDebt;
-  });
-  
-  // Now filter this processed array
-  console.log("Active tab:", activeTab);
-  console.log("Processed debts ready for filtering:", processedDebts);
-  
-  const filteredDebts = processedDebts.filter(debt => {
-    // Use strict comparison with boolean values
-    if (activeTab === "you-owe") {
-      const result = debt.isOwedByUser === true;
-      console.log(`Debt ${debt.id} (${debt.name}) - isOwedByUser:`, debt.isOwedByUser, "Matches you-owe filter:", result);
-      return result;
-    } else {
-      const result = debt.isOwedByUser === false;
-      console.log(`Debt ${debt.id} (${debt.name}) - isOwedByUser:`, debt.isOwedByUser, "Matches owed-to-you filter:", result);
-      return result;
-    }
-  });
-  
-  console.log("Filtered debts:", filteredDebts);
+  // Filter debts based on active tab
+  const filteredDebts = debts?.filter(debt => {
+    if (activeTab === "you-owe") return debt.isOwedByUser;
+    return !debt.isOwedByUser;
+  }) || [];
 
-  // Calculate total debt amounts using our processed debts that have reliable isOwedByUser values
-  // This ensures consistency between the totals and the filtered list display
-  const totalYouOwe = processedDebts.filter(d => {
-    const result = d.isOwedByUser === true;
-    console.log(`Calculating total you owe - Debt ${d.id} (${d.name}) isOwedByUser:`, d.isOwedByUser, "included:", result);
-    return result;
-  }).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
-  
-  const totalOwedToYou = processedDebts.filter(d => {
-    const result = d.isOwedByUser === false;
-    console.log(`Calculating total owed to you - Debt ${d.id} (${d.name}) isOwedByUser:`, d.isOwedByUser, "included:", result);
-    return result;
-  }).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
-  
-  console.log("Total you owe:", totalYouOwe);
-  console.log("Total owed to you:", totalOwedToYou);
-  
-  // Log debt values for debugging
-  console.log("Total debts:", debts?.length);
-  console.log("You Owe:", totalYouOwe, "Owed to You:", totalOwedToYou);
+  // Calculate total debt amounts
+  const totalYouOwe = debts?.filter(d => d.isOwedByUser).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
+  const totalOwedToYou = debts?.filter(d => !d.isOwedByUser).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
 
   // Data for pie chart (by category)
   const getPieChartData = (isOwedByUser: boolean) => {

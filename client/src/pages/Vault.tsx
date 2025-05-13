@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { VaultGoal } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 import { formatCurrency, formatDateRelative } from "@/lib/utils";
 import ProgressBar from "@/components/ProgressBar";
 import { useToast } from "@/hooks/use-toast";
@@ -51,159 +50,37 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [fundAmount, setFundAmount] = useState("");
   const [deletingGoalId, setDeletingGoalId] = useState<number | null>(null);
-  const [forceRefresh, setForceRefresh] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get vault goals with direct API call to ensure fresh data
-  const { data: goals, isLoading, refetch } = useQuery<VaultGoal[]>({
-    queryKey: ['/api/vault-goals', userId, forceRefresh],
+  // Get vault goals
+  const { data: goals, isLoading } = useQuery<VaultGoal[]>({
+    queryKey: ['/api/vault-goals', { userId }],
     queryFn: async () => {
-      console.log(`Fetching vault goals for user ${userId}... (refresh: ${forceRefresh})`);
-      
-      try {
-        // Force a fresh request with no caching
-        const res = await fetch(`/api/vault-goals?userId=${userId}`, {
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          },
-          credentials: 'include'
-        });
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error(`Failed to fetch vault goals: ${errorText}`);
-          throw new Error(`Failed to fetch vault goals: ${errorText}`);
-        }
-        
-        const data = await res.json();
-        console.log('Vault goals fetched:', data);
-        return data;
-      } catch (error) {
-        console.error('Error fetching vault goals:', error);
-        throw error;
-      }
-    },
-    refetchOnWindowFocus: true,
-    staleTime: 0, // No stale time - always fetch fresh data
-    refetchInterval: 3000, // Refetch every 3 seconds
-    retry: 3, // Retry failed requests up to 3 times
+      const res = await fetch(`/api/vault-goals?userId=${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch vault goals');
+      return res.json();
+    }
   });
 
-  // Force a manual refresh on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      console.log("Component mounted - forcing initial data load");
-      try {
-        // Clear any cache for this query first
-        await queryClient.invalidateQueries({ 
-          queryKey: ['/api/vault-goals'],
-          refetchType: 'all'
-        });
-        
-        // Manually trigger a direct API call with all cache-busting headers
-        const res = await fetch(`/api/vault-goals?userId=${userId}&t=${new Date().getTime()}`, {
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          },
-          credentials: 'include'
-        });
-        
-        if (!res.ok) {
-          console.error("Initial data fetch failed:", await res.text());
-          return;
-        }
-        
-        const data = await res.json();
-        console.log("Initial vault goals data:", data);
-        
-        // Force query refetch after manual data retrieval
-        await refetch();
-        
-        // Set timeout to trigger another refresh after UI rendering
-        setTimeout(() => {
-          console.log("Triggering second refresh to ensure data visibility");
-          setForceRefresh(prev => prev + 1);
-          refetch();
-        }, 500);
-        
-        // And a final refresh with a longer delay for any race conditions
-        setTimeout(() => {
-          console.log("Triggering final refresh");
-          setForceRefresh(prev => prev + 1);
-          refetch();
-        }, 2000);
-      } catch (error) {
-        console.error("Error in initial data fetch:", error);
-      }
-    };
-    
-    fetchData();
-    
-    // Set up an interval to periodically refresh data
-    const refreshInterval = setInterval(() => {
-      console.log("Periodic refresh triggered");
-      refetch();
-    }, 5000);
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(refreshInterval);
-  }, [userId, queryClient, refetch]);
-  
   // Add funds mutation
   const addFundsMutation = useMutation({
     mutationFn: async ({ goalId, amount }: { goalId: number, amount: number }) => {
-      console.log(`Adding ${amount} funds to goal ${goalId}`);
       return apiRequest('POST', `/api/vault-goals/${goalId}/add-funds`, { amount });
     },
-    onSuccess: (data) => {
-      console.log("Add funds response:", data);
-      
+    onSuccess: () => {
       toast({
         title: "Funds added",
         description: "The funds have been added to your goal successfully.",
         variant: "default",
       });
-      
-      // Invalidate and force aggressive refresh of all related queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/vault-goals'],
-        refetchType: 'all'
-      });
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/dashboard/summary'],
-        refetchType: 'all'
-      });
-      
-      // Force a manual refetch of the goals data
-      refetch();
-      
-      // Reset UI state
+      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       setIsAddingFunds(false);
       setFundAmount("");
       setSelectedGoalId(null);
-      
-      // Trigger additional refresh via state update
-      setForceRefresh(prev => prev + 1);
-      
-      // Notify other components about the financial data change
-      notifyFinancialDataChanged();
-      
-      // Schedule additional refresh after a short delay
-      setTimeout(() => {
-        console.log("Performing delayed refresh after adding funds");
-        refetch();
-        setForceRefresh(prev => prev + 1);
-      }, 500);
     },
     onError: (error) => {
-      console.error("Error adding funds:", error);
-      
       toast({
         title: "Error",
         description: `Failed to add funds: ${error.message}`,
@@ -215,53 +92,21 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   // Withdraw funds mutation
   const withdrawFundsMutation = useMutation({
     mutationFn: async ({ goalId, amount }: { goalId: number, amount: number }) => {
-      console.log(`Withdrawing ${amount} funds from goal ${goalId}`);
       return apiRequest('POST', `/api/vault-goals/${goalId}/withdraw-funds`, { amount });
     },
-    onSuccess: (data) => {
-      console.log("Withdraw funds response:", data);
-      
+    onSuccess: () => {
       toast({
         title: "Funds withdrawn",
         description: "The funds have been withdrawn from your goal successfully.",
         variant: "default",
       });
-      
-      // Invalidate and force aggressive refresh of all related queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/vault-goals'],
-        refetchType: 'all'
-      });
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/dashboard/summary'],
-        refetchType: 'all'
-      });
-      
-      // Force a manual refetch of the goals data
-      refetch();
-      
-      // Reset UI state
+      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       setIsWithdrawingFunds(false);
       setFundAmount("");
       setSelectedGoalId(null);
-      
-      // Trigger additional refresh via state update
-      setForceRefresh(prev => prev + 1);
-      
-      // Notify other components about the financial data change
-      notifyFinancialDataChanged();
-      
-      // Schedule additional refresh after a short delay
-      setTimeout(() => {
-        console.log("Performing delayed refresh after withdrawing funds");
-        refetch();
-        setForceRefresh(prev => prev + 1);
-      }, 500);
     },
     onError: (error) => {
-      console.error("Error withdrawing funds:", error);
-      
       toast({
         title: "Error",
         description: `Failed to withdraw funds: ${error.message}`,
@@ -273,84 +118,24 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   // Delete goal mutation
   const deleteGoalMutation = useMutation({
     mutationFn: async (goalId: number) => {
-      console.log("Deleting goal with ID:", goalId);
-      try {
-        // Explicitly add content type header for DELETE request
-        const response = await apiRequest('DELETE', `/api/vault-goals/${goalId}`);
-        console.log("Delete response:", response);
-        
-        // Handle 204 No Content response (successful deletion with no response body)
-        if (!response) {
-          console.log("No response body, assuming successful deletion");
-          return { success: true };
-        }
-        return response;
-      } catch (error: any) {
-        console.error("Error in delete mutation:", error);
-        
-        // If the error is a 404, it means the goal was already deleted
-        if (error.message && error.message.includes("404")) {
-          console.log("Goal not found (404), assuming it's already deleted");
-          // Return success anyway since the goal is gone
-          return { success: true, alreadyDeleted: true };
-        }
-        throw error; // Re-throw other errors
-      }
+      return apiRequest('DELETE', `/api/vault-goals/${goalId}`, null);
     },
-    onSuccess: (data) => {
-      console.log("Delete mutation succeeded with data:", data);
-      
-      // Check if it was already deleted
-      const message = data && (data as any).alreadyDeleted 
-        ? "Goal was already removed"
-        : "The goal has been deleted successfully";
-        
+    onSuccess: () => {
       toast({
         title: "Goal deleted",
-        description: message,
+        description: "The goal has been deleted successfully.",
         variant: "default",
       });
-      
-      // Notify all components that financial data has changed
-      notifyFinancialDataChanged();
-      
-      // Force refresh data immediately with specific refetchType for more aggressive refresh
-      console.log("Invalidating queries after deletion");
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/vault-goals'],
-        refetchType: 'active',
-      });
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/dashboard/summary'],
-        refetchType: 'active', 
-      });
-      
-      // Manually refetch data to ensure UI updates
-      refetch();
-      
-      // Trigger force refresh via state update
-      setForceRefresh(prev => prev + 1);
-      
-      // Close the confirmation dialog
+      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       setDeletingGoalId(null);
-      
-      // Add a delayed refresh as additional safeguard
-      setTimeout(() => {
-        console.log("Performing delayed refresh after deletion");
-        refetch();
-        setForceRefresh(prev => prev + 1);
-      }, 1000);
     },
     onError: (error) => {
-      console.error("Delete mutation failed:", error);
-      
       toast({
         title: "Error",
         description: `Failed to delete goal: ${error.message}`,
         variant: "destructive",
       });
-      setDeletingGoalId(null);
     },
   });
 
@@ -410,7 +195,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   // Data for pie chart
   const pieChartData = goals?.map(goal => ({
     name: goal.name,
-    value: goal.currentAmount || 0
+    value: goal.currentAmount
   })) || [];
 
   const COLORS = ['#4CAF50', '#2196F3', '#FFD700', '#FF9800', '#9C27B0', '#E91E63'];
@@ -514,7 +299,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
                                 setSelectedGoalId(goal.id);
                                 setIsWithdrawingFunds(true);
                               }}
-                              disabled={(goal.currentAmount || 0) <= 0}
+                              disabled={goal.currentAmount <= 0}
                             >
                               <ArrowDown className="h-4 w-4 mr-2" />
                               Withdraw
@@ -606,7 +391,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
                       <span className="text-sm text-[#CCCCCC]">{goal.name}</span>
                     </div>
                     <span className="text-sm font-mono text-white">
-                      {formatCurrency(goal.value || 0)}
+                      {formatCurrency(goal.value)}
                     </span>
                   </div>
                 ))}
@@ -700,25 +485,8 @@ const VaultPage = ({ userId }: VaultPageProps) => {
             userId={userId} 
             onClose={() => setIsAddingGoal(false)}
             onSuccess={() => {
-              console.log("Goal created successfully, refreshing data");
-              // Close the dialog first
               setIsAddingGoal(false);
-              
-              // Force a thorough refresh of all relevant queries
               queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
-              queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-              
-              // Manual refetch after a delay to ensure the component re-renders
-              setTimeout(() => {
-                console.log("Executing delayed refetch after goal creation");
-                refetch();
-                
-                // Trigger a forced refresh via state update
-                setForceRefresh(prev => prev + 1);
-                
-                // Notify other components of the data change
-                notifyFinancialDataChanged();
-              }, 500);
             }}
           />
         </DialogContent>

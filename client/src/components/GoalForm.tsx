@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
-import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -57,45 +56,21 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
     },
   });
 
-  const queryClient = useQueryClient();
-  
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
-      
-      console.log("Submitting form with values:", values);
       
       const goalData = {
         userId: values.userId,
         name: values.name,
         targetAmount: parseFloat(values.targetAmount),
         currentAmount: values.currentAmount ? parseFloat(values.currentAmount) : 0,
-        deadline: values.deadline || undefined,
-        notes: values.notes || "",
+        deadline: values.deadline ? new Date(values.deadline) : undefined,
+        notes: values.notes,
       };
       
-      console.log("Formatted goal data for API:", goalData);
-      
-      // Make sure we have the correct userId
-      console.log("Using userId:", goalData.userId);
-      
-      // Clear all existing cached data before making the request
-      await queryClient.invalidateQueries({ 
-        queryKey: ['/api/vault-goals'],
-        refetchType: 'all' 
-      });
-      
-      // Make the API request with explicit cache control headers
-      const response = await apiRequest("POST", "/api/vault-goals", goalData, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      
-      console.log("API response:", response);
+      await apiRequest("POST", "/api/vault-goals", goalData);
       
       // Notify all components that financial data has changed
       notifyFinancialDataChanged();
@@ -106,86 +81,12 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         variant: "default",
       });
       
-      // Perform a sequence of refresh operations to ensure data consistency
-      
-      // First immediate refresh
-      console.log("First invalidation pass after goal creation");
-      await queryClient.invalidateQueries({ 
-        queryKey: ['/api/vault-goals'],
-        refetchType: 'all',
-      });
-      
-      await queryClient.invalidateQueries({ 
-        queryKey: ['/api/dashboard/summary'],
-        refetchType: 'all',
-      });
-      
-      // Force a direct API call to get the latest data
-      try {
-        console.log("Making direct API call to fetch latest data");
-        const refreshResponse = await fetch(`/api/vault-goals?userId=${goalData.userId}&t=${new Date().getTime()}`, {
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          },
-          credentials: 'include'
-        });
-        
-        if (refreshResponse.ok) {
-          const refreshedData = await refreshResponse.json();
-          console.log("Latest vault goals data:", refreshedData);
-        }
-      } catch (fetchError) {
-        console.error("Error in direct refresh:", fetchError);
-      }
-      
-      // Wait for the first round of updates to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Second round of invalidation
-      console.log("Second invalidation pass after goal creation");
-      await queryClient.invalidateQueries({ 
-        queryKey: ['/api/vault-goals'],
-        refetchType: 'all',
-      });
-      
-      // Wait a moment to allow queries to complete their refresh
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      console.log("All queries invalidated after goal creation");
-      
-      // Call the success callback with the created goal data if provided
       if (onSuccess) {
         onSuccess();
       } else {
         onClose();
       }
-      
-      // Add multiple delayed refreshes to ensure UI updates after the modal closes
-      setTimeout(() => {
-        console.log("First delayed query invalidation");
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/vault-goals'],
-          refetchType: 'all'
-        });
-        notifyFinancialDataChanged();
-      }, 500);
-      
-      setTimeout(() => {
-        console.log("Second delayed query invalidation");
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/vault-goals'],
-          refetchType: 'all'
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/dashboard/summary'],
-          refetchType: 'all'
-        });
-        notifyFinancialDataChanged();
-      }, 2000);
     } catch (error: any) {
-      console.error("Error creating goal:", error);
       toast({
         title: "Error",
         description: `Failed to create goal: ${error.message || "Unknown error"}`,

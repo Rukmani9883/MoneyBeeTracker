@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Debt } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -97,7 +97,7 @@ const DebtForm = ({
       form.reset({
         userId: userId,
         name: debt.name,
-        isOwedByUser: debt.isOwedByUser || false,
+        isOwedByUser: debt.isOwedByUser,
         totalAmount: debt.totalAmount.toString(),
         remainingAmount: debt.remainingAmount.toString(),
         interestRate: debt.interestRate?.toString() || "",
@@ -131,7 +131,10 @@ const DebtForm = ({
       
       if (debt) {
         // Update existing debt
-        await apiRequest("PUT", `/api/debts/${debt.id}`, debtData);
+        await apiRequest(`/api/debts/${debt.id}`, {
+          method: "PUT",
+          body: JSON.stringify(debtData)
+        });
         toast({
           title: "Success",
           description: "Debt updated successfully.",
@@ -139,7 +142,10 @@ const DebtForm = ({
         });
       } else {
         // Create new debt
-        await apiRequest("POST", "/api/debts", debtData);
+        await apiRequest("/api/debts", {
+          method: "POST",
+          body: JSON.stringify(debtData)
+        });
         toast({
           title: "Success",
           description: "Debt added successfully.",
@@ -150,28 +156,13 @@ const DebtForm = ({
       // Notify all components that financial data has changed
       notifyFinancialDataChanged();
       
-      // Invalidate queries to ensure data is refreshed
-      // First invalidate generic queries
-      queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
-      
-      // Then invalidate all specific debt queries regardless of parameters
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const queryKey = query.queryKey;
-          return Array.isArray(queryKey) && queryKey[0] === '/api/debts';
-        },
-      });
-      
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to ${debt ? "update" : "create"} debt: ${error.message || 'Unknown error'}`,
+        description: `Failed to ${debt ? "update" : "create"} debt: ${error.message}`,
         variant: "destructive",
       });
     } finally {
