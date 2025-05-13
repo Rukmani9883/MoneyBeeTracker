@@ -1182,8 +1182,28 @@ export class DatabaseStorage implements IStorage {
         .where(eq(vaultGoals.userId, userId))
         .orderBy(desc(vaultGoals.createdAt));
       
-      this.logDebug(`Retrieved ${goals.length} vault goals for user ${userId}`);
-      return goals;
+      // Post-processing to ensure consistent data
+      const processedGoals = goals.map(goal => ({
+        ...goal,
+        // Ensure currentAmount is not null
+        currentAmount: goal.currentAmount ?? 0,
+        // Ensure notes is not undefined
+        notes: goal.notes ?? null
+      }));
+      
+      this.logDebug(`Retrieved ${processedGoals.length} vault goals for user ${userId}`);
+      
+      // If there are goals, log the first one for debugging
+      if (processedGoals.length > 0) {
+        this.logDebug(`First goal sample:`, {
+          id: processedGoals[0].id,
+          name: processedGoals[0].name,
+          targetAmount: processedGoals[0].targetAmount,
+          currentAmount: processedGoals[0].currentAmount
+        });
+      }
+      
+      return processedGoals;
     } catch (error) {
       this.logError(`getVaultGoals for userId ${userId}`, error);
       throw error;
@@ -1196,12 +1216,27 @@ export class DatabaseStorage implements IStorage {
       const [goal] = await db.select().from(vaultGoals).where(eq(vaultGoals.id, id));
       
       if (goal) {
-        this.logDebug(`Found vault goal with id ${id}`);
+        // Process goal to ensure consistent data format
+        const processedGoal = {
+          ...goal,
+          // Ensure currentAmount is not null
+          currentAmount: goal.currentAmount ?? 0,
+          // Ensure notes is not undefined
+          notes: goal.notes ?? null
+        };
+        
+        this.logDebug(`Found vault goal with id ${id}`, {
+          id: processedGoal.id,
+          name: processedGoal.name,
+          targetAmount: processedGoal.targetAmount,
+          currentAmount: processedGoal.currentAmount
+        });
+        
+        return processedGoal;
       } else {
         this.logDebug(`No vault goal found with id ${id}`);
+        return undefined;
       }
-      
-      return goal;
     } catch (error) {
       this.logError(`getVaultGoalById for id ${id}`, error);
       throw error;

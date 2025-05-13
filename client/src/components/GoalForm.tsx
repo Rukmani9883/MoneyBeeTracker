@@ -80,7 +80,21 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
       // Make sure we have the correct userId
       console.log("Using userId:", goalData.userId);
       
-      const response = await apiRequest("POST", "/api/vault-goals", goalData);
+      // Clear all existing cached data before making the request
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/vault-goals'],
+        refetchType: 'all' 
+      });
+      
+      // Make the API request with explicit cache control headers
+      const response = await apiRequest("POST", "/api/vault-goals", goalData, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
       console.log("API response:", response);
       
       // Notify all components that financial data has changed
@@ -92,21 +106,54 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         variant: "default",
       });
       
-      // Force refresh queries with specific waitFor to ensure data is refreshed before UI updates
+      // Perform a sequence of refresh operations to ensure data consistency
+      
+      // First immediate refresh
+      console.log("First invalidation pass after goal creation");
       await queryClient.invalidateQueries({ 
         queryKey: ['/api/vault-goals'],
-        refetchType: 'active',
+        refetchType: 'all',
       });
       
       await queryClient.invalidateQueries({ 
         queryKey: ['/api/dashboard/summary'],
-        refetchType: 'active',
+        refetchType: 'all',
       });
       
-      // Wait a moment to allow the queries to complete their refresh
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Force a direct API call to get the latest data
+      try {
+        console.log("Making direct API call to fetch latest data");
+        const refreshResponse = await fetch(`/api/vault-goals?userId=${goalData.userId}&t=${new Date().getTime()}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          credentials: 'include'
+        });
+        
+        if (refreshResponse.ok) {
+          const refreshedData = await refreshResponse.json();
+          console.log("Latest vault goals data:", refreshedData);
+        }
+      } catch (fetchError) {
+        console.error("Error in direct refresh:", fetchError);
+      }
       
-      console.log("Queries invalidated after goal creation");
+      // Wait for the first round of updates to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Second round of invalidation
+      console.log("Second invalidation pass after goal creation");
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/vault-goals'],
+        refetchType: 'all',
+      });
+      
+      // Wait a moment to allow queries to complete their refresh
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      console.log("All queries invalidated after goal creation");
       
       // Call the success callback with the created goal data if provided
       if (onSuccess) {
@@ -115,11 +162,28 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         onClose();
       }
       
-      // Add a delayed refresh to ensure UI updates after the modal closes
+      // Add multiple delayed refreshes to ensure UI updates after the modal closes
       setTimeout(() => {
-        console.log("Performing delayed query invalidation");
-        queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
-      }, 1000);
+        console.log("First delayed query invalidation");
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/vault-goals'],
+          refetchType: 'all'
+        });
+        notifyFinancialDataChanged();
+      }, 500);
+      
+      setTimeout(() => {
+        console.log("Second delayed query invalidation");
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/vault-goals'],
+          refetchType: 'all'
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/dashboard/summary'],
+          refetchType: 'all'
+        });
+        notifyFinancialDataChanged();
+      }, 2000);
     } catch (error: any) {
       console.error("Error creating goal:", error);
       toast({
