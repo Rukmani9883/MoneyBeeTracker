@@ -1085,7 +1085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard summary route
+  // Enhanced Dashboard summary route with auto-calculated savings
   app.get(`${api}/dashboard/summary`, async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.query.userId as string);
@@ -1094,57 +1094,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get month and year from query params if provided, otherwise use current date
-      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : new Date().getMonth();
+      const month = req.query.month !== undefined ? parseInt(req.query.month as string) : new Date().getMonth() + 1; // Add 1 because client expects 1-based months
       const year = req.query.year !== undefined ? parseInt(req.query.year as string) : new Date().getFullYear();
       
       if (isNaN(month) || isNaN(year)) {
         return res.status(400).json({ message: "Invalid month or year" });
       }
       
-      const now = new Date();
-      const currentMonth = month;
-      const currentYear = year;
+      console.log(`Getting dashboard summary for user ${userId}, month ${month}, year ${year}`);
       
       // Get total income for current month
-      const totalIncome = await storage.getTotalIncome(userId, currentMonth, currentYear);
+      const totalIncome = await storage.getTotalIncome(userId, month, year);
       
       // Get total expenses for current month
-      const totalExpenses = await storage.getTotalExpenses(userId, currentMonth, currentYear);
+      const totalExpenses = await storage.getTotalExpenses(userId, month, year);
       
-      // Calculate savings (income - expenses)
-      const savings = totalIncome - totalExpenses;
+      // Get debt payments for the month (monthly EMIs)
+      const debts = await storage.getDebts(userId);
+      const debtPayments = debts
+        .filter(debt => debt.isOwedByUser && debt.monthlyPayment > 0)
+        .reduce((total, debt) => total + (debt.monthlyPayment || 0), 0);
+      
+      // Get bills due this month
+      const monthStartDate = new Date(year, month - 1, 1);
+      const monthEndDate = new Date(year, month, 0); // Last day of month
+      
+      const bills = await storage.getBills(userId);
+      const billsDueThisMonth = bills.filter(bill => {
+        const dueDate = new Date(bill.dueDate);
+        return dueDate >= monthStartDate && dueDate <= monthEndDate;
+      });
+      
+      const billPayments = billsDueThisMonth.reduce((total, bill) => total + bill.amount, 0);
+      
+      // Calculate remaining savings after expenses, debt payments, and bills
+      const totalOutflow = totalExpenses + debtPayments + billPayments;
+      const savings = Math.max(0, totalIncome - totalOutflow);
+      
+      console.log(`Financial summary:
+        Total Income: ${totalIncome}
+        Total Expenses: ${totalExpenses}
+        Debt Payments: ${debtPayments}
+        Bill Payments: ${billPayments}
+        Total Outflow: ${totalOutflow}
+        Calculated Savings: ${savings}
+      `);
       
       // Get all vault goals and sum up current amounts
       const vaultGoals = await storage.getVaultGoals(userId);
-      const totalVault = vaultGoals.reduce((total, goal) => total + goal.currentAmount, 0);
+      const totalVault = vaultGoals.reduce((total, goal) => total + (goal.currentAmount || 0), 0);
       
       // Get total debts
       const totalDebtsOwed = await storage.getTotalDebts(userId, true);
       const totalDebtsOwedToUser = await storage.getTotalDebts(userId, false);
       
-      // Get upcoming bills
+      // Get upcoming bills for the next 30 days
       const upcomingBills = await storage.getUpcomingBills(userId, 30);
       const totalBills = upcomingBills.reduce((total, bill) => total + bill.amount, 0);
       
       // Get recent transactions
       const recentTransactions = await storage.getRecentTransactions(userId, 5);
       
+      // Auto-update the savings record for this month
+      await autoUpdateMonthlySavings(userId, month, year, savings);
+      
       // Return all summary data
       res.status(200).json({
         totalIncome,
         totalExpenses,
+        debtPayments,
+        billPayments,
         savings,
         totalVault,
         totalDebts: totalDebtsOwed,
         totalDebtsOwedToUser,
         totalBills,
         upcomingBills,
-        recentTransactions
+        recentTransactions,
+        vaultGoals
       });
     } catch (error) {
+      console.error("Error generating dashboard summary:", error);
       res.status(400).json({ message: error.message });
     }
   });
+  
+  // Helper function to auto-update savings based on calculated amount
+  async function autoUpdateMonthlySavings(userId: number, month: number, year: number, calculatedAmount: number) {
+    try {
+      // Convert 1-based month to 0-based month for JS Date
+      const jsMonth = month - 1;
+      
+      // Get month name
+      const monthNames = ["January", "February", "March", "April", "May", "June", 
+                        "July", "August", "September", "October", "November", "December"];
+      const monthName = monthNames[jsMonth];
+      
+      // Check if a savings record exists for this month
+      const existingSavings = await storage.getMonthlySavings(userId, monthName, year);
+      
+      if (existingSavings) {
+        // Update existing record with calculated amount
+        const updatedSaving = await storage.updateSaving(existingSavings.id, {
+          amount: calculatedAmount,
+          // Keep existing goal if present
+          goal: existingSavings.goal
+        });
+        console.log(`Updated savings for ${monthName} ${year} to ${calculatedAmount}`);
+        return updatedSaving;
+      } else {
+        // Create new savings record
+        const newSaving = await storage.createSaving({
+          userId,
+          month: monthName,
+          year,
+          amount: calculatedAmount,
+          goal: null // No goal set initially
+        });
+        console.log(`Created new savings for ${monthName} ${year} with amount ${calculatedAmount}`);
+        return newSaving;
+      }
+    } catch (error) {
+      console.error("Error auto-updating savings:", error);
+      // Don't throw - this is a background operation
+      return null;
+    }
+  }
 
   // Create test data for demonstration
   app.post(`${api}/demo-data`, async (req: Request, res: Response) => {
