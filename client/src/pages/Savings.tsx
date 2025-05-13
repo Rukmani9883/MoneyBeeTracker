@@ -43,11 +43,27 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Handle date change
+  const handleDateChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+    
+    // Invalidate relevant queries when date changes
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/dashboard/summary'] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/savings'] 
+    });
+  };
+
   // Get total income, expenses, and savings from summary
   const { data: summary, isLoading: isSummaryLoading } = useQuery({
-    queryKey: ['/api/dashboard/summary', userId],
+    queryKey: ['/api/dashboard/summary', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/dashboard/summary?userId=${userId}`);
+      // API expects 1-based months
+      const apiMonth = selectedMonth + 1;
+      const res = await fetch(`/api/dashboard/summary?userId=${userId}&month=${apiMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch dashboard summary');
       return res.json();
     }
@@ -57,27 +73,18 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
   const { data: savings, isLoading: isSavingsLoading } = useQuery<Saving[]>({
     queryKey: ['/api/savings', userId, selectedMonth, selectedYear],
     queryFn: async () => {
-      // For JavaScript, months are 0-based (0 = January, 11 = December)
-      // But the API expects 1-based months, so we add 1 to selectedMonth
-      const jsMonth = selectedMonth + 1;
-      const res = await fetch(`/api/savings?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
+      // API expects 1-based months
+      const apiMonth = selectedMonth + 1;
+      const res = await fetch(`/api/savings?userId=${userId}&month=${apiMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error('Failed to fetch savings history');
       return res.json();
     }
   });
-  
-  const handleDateChange = (month: number, year: number) => {
-    setSelectedMonth(month);
-    setSelectedYear(year);
-  };
 
   // Set savings goal mutation
   const setSavingsGoalMutation = useMutation({
     mutationFn: async (data: { userId: number, month: string, year: number, amount: number, goal: number }) => {
-      return apiRequest(`/api/savings`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
+      return apiRequest('POST', '/api/savings', data);
     },
     onSuccess: () => {
       toast({
@@ -85,7 +92,9 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
         description: "Your monthly savings goal has been updated.",
         variant: "default",
       });
+      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/savings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       setIsSettingGoal(false);
       setGoalAmount("");
     },

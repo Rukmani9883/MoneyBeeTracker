@@ -3,17 +3,18 @@ import { Link } from "wouter";
 interface SummaryCardProps {
   title: string;
   amount: number;
+  subtitle?: string; // Optional subtitle text
   icon: React.ReactNode;
   iconColor: string;
   linkTo?: string; // Optional path to navigate to when clicked
 }
 
-const SummaryCard = ({ title, amount, icon, iconColor, linkTo }: SummaryCardProps) => {
+const SummaryCard = ({ title, amount, subtitle, icon, iconColor, linkTo }: SummaryCardProps) => {
   const formattedAmount = new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
     currency: 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(amount);
 
   const content = (
@@ -25,6 +26,9 @@ const SummaryCard = ({ title, amount, icon, iconColor, linkTo }: SummaryCardProp
         </div>
       </div>
       <div className="font-mono font-medium text-xl text-white">{formattedAmount}</div>
+      {subtitle && (
+        <div className="text-[#999999] text-xs mt-1">{subtitle}</div>
+      )}
     </>
   );
 
