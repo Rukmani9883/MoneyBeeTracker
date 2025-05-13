@@ -157,11 +157,9 @@ const TransactionForm = ({
       if (existingTransaction) {
         // Update existing transaction
         response = await apiRequest(
+          "PUT",
           `${endpoint}/${existingTransaction.id}`, 
-          {
-            method: "PUT",
-            body: JSON.stringify(transactionData),
-          }
+          transactionData
         );
         
         toast({
@@ -179,11 +177,9 @@ const TransactionForm = ({
       } else {
         // Create new transaction
         response = await apiRequest(
+          "POST",
           endpoint, 
-          {
-            method: "POST",
-            body: JSON.stringify(transactionData),
-          }
+          transactionData
         );
         
         toast({
@@ -201,22 +197,20 @@ const TransactionForm = ({
       }
       
       // Add a transaction record
-      if (response && response.ok) {
+      if (response) {
         // Create transaction record if needed
         await apiRequest(
+          "POST",
           "/api/transactions", 
           {
-            method: "POST",
-            body: JSON.stringify({
-              userId: values.userId,
-              type: values.transactionType,
-              date: dateObject.toISOString(),
-              amount: parseFloat(values.amount),
-              category: values.category,
-              description: values.name,
-              sourceId: null,
-              destinationId: null,
-            }),
+            userId: values.userId,
+            type: values.transactionType,
+            date: dateObject.toISOString(),
+            amount: parseFloat(values.amount),
+            category: values.category,
+            description: values.name,
+            sourceId: null,
+            destinationId: null,
           }
         );
       }
