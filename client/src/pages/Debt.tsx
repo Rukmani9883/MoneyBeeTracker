@@ -60,14 +60,27 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   const queryClient = useQueryClient();
 
   // Get all debts with date filtering
-  const { data: debts, isLoading } = useQuery<Debt[]>({
+  const { data: debts, isLoading, refetch } = useQuery<Debt[]>({
     queryKey: ['/api/debts', userId, selectedMonth, selectedYear],
     queryFn: async () => {
       console.log("Fetching debts...");
+      
+      // Add cache busting to prevent caching issues
+      const timestamp = new Date().getTime();
+      
+      // Add headers to prevent browser caching
+      const requestOptions = {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      };
+      
       // For JavaScript, months are 0-based (0 = January, 11 = December)
       // But the API expects 1-based months, so we add 1 to selectedMonth
       const jsMonth = selectedMonth + 1;
-      const res = await fetch(`/api/debts?userId=${userId}`);
+      const res = await fetch(`/api/debts?userId=${userId}&nocache=${timestamp}`, requestOptions);
       
       if (!res.ok) {
         console.error("Failed to fetch debts:", await res.text());
@@ -87,7 +100,8 @@ const DebtPage = ({ userId }: DebtPageProps) => {
       });
     },
     refetchOnWindowFocus: true,
-    staleTime: 1000, // Short stale time to ensure frequent refreshes
+    staleTime: 0, // No stale time to always refetch fresh data
+    refetchInterval: 2000 // Automatically refetch every 2 seconds to ensure data is fresh
   });
   
   const handleDateChange = (month: number, year: number) => {
@@ -106,10 +120,17 @@ const DebtPage = ({ userId }: DebtPageProps) => {
         description: "The debt record has been removed successfully.",
         variant: "default",
       });
+      // Invalidate all debt-related queries by not providing specific parameters
       queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
+      // Also invalidate the specific query with current filters
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/debts', userId, selectedMonth, selectedYear] 
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
+      // Force an immediate refetch
+      refetch();
       setDeletingDebtId(null);
     },
     onError: (error) => {

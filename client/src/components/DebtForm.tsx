@@ -151,10 +151,19 @@ const DebtForm = ({
       notifyFinancialDataChanged();
       
       // Invalidate queries to ensure data is refreshed
+      // First invalidate generic queries
       queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
+      
+      // Then invalidate all specific debt queries regardless of parameters
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const queryKey = query.queryKey;
+          return Array.isArray(queryKey) && queryKey[0] === '/api/debts';
+        },
+      });
       
       if (onSuccess) {
         onSuccess();
