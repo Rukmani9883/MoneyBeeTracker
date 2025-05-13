@@ -97,11 +97,14 @@ const VaultPage = ({ userId }: VaultPageProps) => {
     const fetchData = async () => {
       console.log("Component mounted - forcing initial data load");
       try {
-        // Clear any cache for this query
-        await queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
+        // Clear any cache for this query first
+        await queryClient.invalidateQueries({ 
+          queryKey: ['/api/vault-goals'],
+          refetchType: 'all'
+        });
         
-        // Manually trigger a direct API call
-        const res = await fetch(`/api/vault-goals?userId=${userId}`, {
+        // Manually trigger a direct API call with all cache-busting headers
+        const res = await fetch(`/api/vault-goals?userId=${userId}&t=${new Date().getTime()}`, {
           headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
@@ -119,18 +122,36 @@ const VaultPage = ({ userId }: VaultPageProps) => {
         console.log("Initial vault goals data:", data);
         
         // Force query refetch after manual data retrieval
-        refetch();
+        await refetch();
         
         // Set timeout to trigger another refresh after UI rendering
         setTimeout(() => {
+          console.log("Triggering second refresh to ensure data visibility");
           setForceRefresh(prev => prev + 1);
-        }, 1000);
+          refetch();
+        }, 500);
+        
+        // And a final refresh with a longer delay for any race conditions
+        setTimeout(() => {
+          console.log("Triggering final refresh");
+          setForceRefresh(prev => prev + 1);
+          refetch();
+        }, 2000);
       } catch (error) {
         console.error("Error in initial data fetch:", error);
       }
     };
     
     fetchData();
+    
+    // Set up an interval to periodically refresh data
+    const refreshInterval = setInterval(() => {
+      console.log("Periodic refresh triggered");
+      refetch();
+    }, 5000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(refreshInterval);
   }, [userId, queryClient, refetch]);
   
   // Add funds mutation
@@ -148,9 +169,16 @@ const VaultPage = ({ userId }: VaultPageProps) => {
         variant: "default",
       });
       
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      // Invalidate and force aggressive refresh of all related queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/vault-goals'],
+        refetchType: 'all'
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/dashboard/summary'],
+        refetchType: 'all'
+      });
       
       // Force a manual refetch of the goals data
       refetch();
@@ -160,8 +188,18 @@ const VaultPage = ({ userId }: VaultPageProps) => {
       setFundAmount("");
       setSelectedGoalId(null);
       
+      // Trigger additional refresh via state update
+      setForceRefresh(prev => prev + 1);
+      
       // Notify other components about the financial data change
       notifyFinancialDataChanged();
+      
+      // Schedule additional refresh after a short delay
+      setTimeout(() => {
+        console.log("Performing delayed refresh after adding funds");
+        refetch();
+        setForceRefresh(prev => prev + 1);
+      }, 500);
     },
     onError: (error) => {
       console.error("Error adding funds:", error);
@@ -189,9 +227,16 @@ const VaultPage = ({ userId }: VaultPageProps) => {
         variant: "default",
       });
       
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      // Invalidate and force aggressive refresh of all related queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/vault-goals'],
+        refetchType: 'all'
+      });
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/dashboard/summary'],
+        refetchType: 'all'
+      });
       
       // Force a manual refetch of the goals data
       refetch();
@@ -201,8 +246,18 @@ const VaultPage = ({ userId }: VaultPageProps) => {
       setFundAmount("");
       setSelectedGoalId(null);
       
+      // Trigger additional refresh via state update
+      setForceRefresh(prev => prev + 1);
+      
       // Notify other components about the financial data change
       notifyFinancialDataChanged();
+      
+      // Schedule additional refresh after a short delay
+      setTimeout(() => {
+        console.log("Performing delayed refresh after withdrawing funds");
+        refetch();
+        setForceRefresh(prev => prev + 1);
+      }, 500);
     },
     onError: (error) => {
       console.error("Error withdrawing funds:", error);
