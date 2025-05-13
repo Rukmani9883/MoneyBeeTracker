@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import SummaryCard from "@/components/SummaryCard";
-import MonthlyOverview from "@/components/MonthlyOverview";
-import SavingsGoals from "@/components/SavingsGoals";
+import ExpenseChart from "@/components/ExpenseChart";
+import Vault from "@/components/Vault";
 import RecentTransactions from "@/components/RecentTransactions";
 import UpcomingBills from "@/components/UpcomingBills";
 import DateSelector from "@/components/DateSelector";
@@ -106,8 +106,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
     };
   }, [queryClient, userId, selectedMonth, selectedYear]);
 
-  // Empty monthly chart data (will be populated by user input)
-  const monthlyData: { name: string; income: number; expenses: number; isCurrent: boolean }[] = [];
+  // No need for empty monthly data anymore since we're using ExpenseChart
 
   return (
     <>
@@ -178,11 +177,17 @@ const Dashboard = ({ userId }: DashboardProps) => {
           />
         </div>
 
-        {/* Monthly Cashflow & Savings Goals */}
+        {/* Expense Chart & Vault */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <MonthlyOverview data={monthlyData} />
+          <div>
+            <ExpenseChart 
+              userId={userId}
+              month={selectedMonth}
+              year={selectedYear}
+            />
+          </div>
           <div className="lg:col-span-2">
-            <SavingsGoals 
+            <Vault 
               userId={userId} 
               monthlySavings={summary?.savings || 0} 
             />
