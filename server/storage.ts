@@ -869,6 +869,14 @@ export class MemStorage implements IStorage {
 
 // Create a DatabaseStorage implementation
 export class DatabaseStorage implements IStorage {
+  // Helper function to log errors and debug information
+  private logDebug(operation: string, data?: any) {
+    console.log(`[DatabaseStorage] ${operation}${data ? ': ' + JSON.stringify(data) : ''}`);
+  }
+  
+  private logError(operation: string, error: any) {
+    console.error(`[DatabaseStorage Error] ${operation}:`, error);
+  }
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
