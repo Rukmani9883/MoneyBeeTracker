@@ -627,25 +627,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Vault Goals routes
   app.get(`${api}/vault-goals`, async (req: Request, res: Response) => {
     try {
+      console.log(`GET ${api}/vault-goals request with query:`, req.query);
+      
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const userId = parseInt(req.query.userId as string);
       if (isNaN(userId)) {
+        console.error(`Invalid user ID in vault-goals request: ${req.query.userId}`);
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
+      console.log(`Fetching vault goals for user ${userId}`);
       const goals = await storage.getVaultGoals(userId);
-      res.status(200).json(goals);
+      console.log(`Retrieved ${goals.length} vault goals for user ${userId}`);
+      
+      if (goals.length > 0) {
+        console.log(`Sample first goal: id=${goals[0].id}, name=${goals[0].name}, targetAmount=${goals[0].targetAmount}, currentAmount=${goals[0].currentAmount}`);
+      }
+      
+      return res.status(200).json(goals);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('Error in GET /vault-goals:', error);
+      return res.status(500).json({ message: error.message || "Internal server error" });
     }
   });
 
   app.post(`${api}/vault-goals`, async (req: Request, res: Response) => {
     try {
+      console.log(`POST ${api}/vault-goals request with body:`, req.body);
+      
+      // Set cache control headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const goalData = insertVaultGoalSchema.parse(req.body);
+      console.log(`Creating vault goal for user ${goalData.userId}`);
+      
       const goal = await storage.createVaultGoal(goalData);
-      res.status(201).json(goal);
+      console.log(`Successfully created vault goal with id ${goal.id}`);
+      
+      // Get updated list of goals to verify the new goal is there
+      const updatedGoals = await storage.getVaultGoals(goalData.userId);
+      console.log(`After creation: Retrieved ${updatedGoals.length} vault goals for user ${goalData.userId}`);
+      
+      return res.status(201).json(goal);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('Error in POST /vault-goals:', error);
+      return res.status(400).json({ message: error.message || "Failed to create goal" });
     }
   });
 
