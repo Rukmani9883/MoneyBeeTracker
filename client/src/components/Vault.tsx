@@ -161,7 +161,7 @@ const Vault = ({ userId, monthlySavings = 0 }: VaultProps) => {
     <>
       <div className="bg-[#1E1E1E] rounded-xl p-5 shadow-lg h-full">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold text-white">Vault</h3>
+          <h3 className="font-semibold text-white">Vault Goals</h3>
           <div className="flex items-center space-x-2">
             {monthlySavings > 0 && (
               <button 

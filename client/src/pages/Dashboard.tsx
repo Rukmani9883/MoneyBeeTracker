@@ -150,7 +150,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
           />
           
           <SummaryCard
-            title="Vault"
+            title="Vault Goals"
             amount={summary?.totalVault || 0}
             icon={<InvestmentIcon color="text-[#FFD700]" />}
             iconColor=""

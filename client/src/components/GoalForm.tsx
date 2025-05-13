@@ -70,10 +70,7 @@ const GoalForm = ({ userId, onClose, onSuccess }: GoalFormProps) => {
         notes: values.notes,
       };
       
-      await apiRequest("/api/vault-goals", {
-        method: "POST",
-        body: JSON.stringify(goalData)
-      });
+      await apiRequest("POST", "/api/vault-goals", goalData);
       
       // Notify all components that financial data has changed
       notifyFinancialDataChanged();

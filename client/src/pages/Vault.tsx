@@ -202,7 +202,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
 
   return (
     <>
-      <Header title="Vault" userId={userId} />
+      <Header title="Vault Goals" userId={userId} />
       
       <div className="p-4 md:p-6 fade-in">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
