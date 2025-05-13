@@ -175,15 +175,15 @@ const Dashboard = ({ userId }: DashboardProps) => {
         </div>
 
         {/* Expense Chart & Vault */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 mb-6">
+          <div className="lg:col-span-7">
             <ExpenseChart 
               userId={userId}
               month={selectedMonth}
               year={selectedYear}
             />
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <Vault 
               userId={userId} 
               monthlySavings={summary?.savings || 0} 
