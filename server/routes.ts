@@ -1264,13 +1264,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1; // 1-indexed month
       
-      // Parse parameters with fallbacks
-      let userId = NaN;
-      try {
-        userId = parseInt(req.query.userId as string);
-      } catch (e) {
-        // Will be caught by isNaN check
+      // Get userId from session instead of query parameter
+      const userId = req.session.userId as number;
+      
+      if (!userId) {
+        console.log("No user ID in session, using fallback");
+        return res.status(401).json({ message: "Authentication required" });
       }
+      
+      console.log("Getting upcoming bills for user:", userId);
       
       const daysAhead = parseInt(req.query.daysAhead as string) || 30;
       
@@ -1292,13 +1294,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      if (isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
+      console.log(`Fetching bills for month ${month}, year ${year}, user ${userId}`);
       
       // Safely handle errors in case the function fails
       try {
         let bills = await storage.getBillsForMonth(userId, month, year);
+        console.log(`Found ${bills.length} bills for the month`);
         res.status(200).json(bills);
       } catch (billError: any) {
         console.error("Error fetching upcoming bills:", billError);
