@@ -118,14 +118,36 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   // Delete goal mutation
   const deleteGoalMutation = useMutation({
     mutationFn: async (goalId: number) => {
-      return apiRequest('DELETE', `/api/vault-goals/${goalId}`, null);
+      try {
+        const response = await apiRequest('DELETE', `/api/vault-goals/${goalId}`, null);
+        // Handle 204 No Content response (successful deletion with no response body)
+        if (!response) {
+          return { success: true };
+        }
+        return response;
+      } catch (error: any) {
+        // If the error is a 404, it means the goal was already deleted
+        if (error.message && error.message.includes("404")) {
+          // Return success anyway since the goal is gone
+          return { success: true, alreadyDeleted: true };
+        }
+        throw error; // Re-throw other errors
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Check if it was already deleted
+      const message = data && (data as any).alreadyDeleted 
+        ? "Goal was already removed"
+        : "The goal has been deleted successfully";
+        
       toast({
         title: "Goal deleted",
-        description: "The goal has been deleted successfully.",
+        description: message,
         variant: "default",
       });
+      // Notify all components that financial data has changed
+      notifyFinancialDataChanged();
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/vault-goals'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       setDeletingGoalId(null);
@@ -136,6 +158,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
         description: `Failed to delete goal: ${error.message}`,
         variant: "destructive",
       });
+      setDeletingGoalId(null);
     },
   });
 
