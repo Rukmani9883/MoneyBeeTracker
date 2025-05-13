@@ -26,12 +26,15 @@ interface DashboardSummary {
   totalIncome: number;
   totalExpenses: number;
   savings: number;
+  debtPayments: number;
+  billPayments: number;
   totalVault: number;
   totalDebts: number;
   totalDebtsOwedToUser: number;
   totalBills: number;
   upcomingBills: any[];
   recentTransactions: any[];
+  vaultGoals?: any[];
 }
 
 const Dashboard = ({ userId }: DashboardProps) => {
@@ -140,8 +143,11 @@ const Dashboard = ({ userId }: DashboardProps) => {
           />
           
           <SummaryCard
-            title="Savings"
+            title="Monthly Savings"
             amount={summary?.savings || 0}
+            subtitle={summary?.savings ? 
+              `${Math.round((summary.savings / (summary.totalIncome || 1)) * 100)}% of income` :
+              "No savings yet"}
             icon={<InvestmentIcon color="text-[#4CAF50]" />}
             iconColor=""
             linkTo="/savings"
@@ -175,7 +181,12 @@ const Dashboard = ({ userId }: DashboardProps) => {
         {/* Monthly Cashflow & Savings Goals */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <MonthlyOverview data={monthlyData} />
-          <SavingsGoals userId={userId} />
+          <div className="lg:col-span-2">
+            <SavingsGoals 
+              userId={userId} 
+              monthlySavings={summary?.savings || 0} 
+            />
+          </div>
         </div>
 
         {/* Recent Transactions & Upcoming Bills */}
