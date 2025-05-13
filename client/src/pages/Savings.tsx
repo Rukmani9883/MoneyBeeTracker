@@ -241,7 +241,7 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
                       tick={{ fill: '#CCCCCC' }} 
                       tickLine={{ stroke: '#2D2D2D' }}
                       axisLine={{ stroke: '#2D2D2D' }}
-                      tickFormatter={(value) => `$${value}`}
+                      tickFormatter={(value) => `₹${value}`}
                     />
                     <Tooltip 
                       formatter={(value) => formatCurrency(value as number)}

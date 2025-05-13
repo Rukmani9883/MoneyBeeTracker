@@ -168,7 +168,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
     }
 
     const selectedGoal = goals?.find(g => g.id === selectedGoalId);
-    if (selectedGoal && parseFloat(fundAmount) > selectedGoal.currentAmount) {
+    if (selectedGoal && parseFloat(fundAmount) > (selectedGoal.currentAmount || 0)) {
       toast({
         title: "Insufficient funds",
         description: "You cannot withdraw more than the current amount in this goal.",
@@ -190,7 +190,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   };
 
   // Calculate total vault amount
-  const totalVaultAmount = goals?.reduce((sum, goal) => sum + goal.currentAmount, 0) || 0;
+  const totalVaultAmount = goals?.reduce((sum, goal) => sum + (goal.currentAmount || 0), 0) || 0;
 
   // Data for pie chart
   const pieChartData = goals?.map(goal => ({
@@ -239,8 +239,8 @@ const VaultPage = ({ userId }: VaultPageProps) => {
               ) : goals && goals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {goals.map(goal => {
-                    const progressPercentage = Math.round((goal.currentAmount / goal.targetAmount) * 100);
-                    const formattedCurrent = formatCurrency(goal.currentAmount);
+                    const progressPercentage = Math.round(((goal.currentAmount || 0) / goal.targetAmount) * 100);
+                    const formattedCurrent = formatCurrency(goal.currentAmount || 0);
                     const formattedTarget = formatCurrency(goal.targetAmount);
                     
                     return (
