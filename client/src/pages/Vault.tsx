@@ -195,7 +195,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   // Data for pie chart
   const pieChartData = goals?.map(goal => ({
     name: goal.name,
-    value: goal.currentAmount
+    value: goal.currentAmount || 0
   })) || [];
 
   const COLORS = ['#4CAF50', '#2196F3', '#FFD700', '#FF9800', '#9C27B0', '#E91E63'];
@@ -299,7 +299,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
                                 setSelectedGoalId(goal.id);
                                 setIsWithdrawingFunds(true);
                               }}
-                              disabled={goal.currentAmount <= 0}
+                              disabled={(goal.currentAmount || 0) <= 0}
                             >
                               <ArrowDown className="h-4 w-4 mr-2" />
                               Withdraw
@@ -391,7 +391,7 @@ const VaultPage = ({ userId }: VaultPageProps) => {
                       <span className="text-sm text-[#CCCCCC]">{goal.name}</span>
                     </div>
                     <span className="text-sm font-mono text-white">
-                      {formatCurrency(goal.value)}
+                      {formatCurrency(goal.value || 0)}
                     </span>
                   </div>
                 ))}
