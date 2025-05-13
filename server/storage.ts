@@ -1172,59 +1172,189 @@ export class DatabaseStorage implements IStorage {
 
   // Vault Goals operations
   async getVaultGoals(userId: number): Promise<VaultGoal[]> {
-    return db.select().from(vaultGoals).where(eq(vaultGoals.userId, userId));
+    try {
+      this.logDebug(`getVaultGoals for userId ${userId}`);
+      
+      // Query with sorting by createdAt in descending order (newest first)
+      const goals = await db
+        .select()
+        .from(vaultGoals)
+        .where(eq(vaultGoals.userId, userId))
+        .orderBy(desc(vaultGoals.createdAt));
+      
+      this.logDebug(`Retrieved ${goals.length} vault goals for user ${userId}`);
+      return goals;
+    } catch (error) {
+      this.logError(`getVaultGoals for userId ${userId}`, error);
+      throw error;
+    }
   }
 
   async getVaultGoalById(id: number): Promise<VaultGoal | undefined> {
-    const [goal] = await db.select().from(vaultGoals).where(eq(vaultGoals.id, id));
-    return goal;
+    try {
+      this.logDebug(`getVaultGoalById for id ${id}`);
+      const [goal] = await db.select().from(vaultGoals).where(eq(vaultGoals.id, id));
+      
+      if (goal) {
+        this.logDebug(`Found vault goal with id ${id}`);
+      } else {
+        this.logDebug(`No vault goal found with id ${id}`);
+      }
+      
+      return goal;
+    } catch (error) {
+      this.logError(`getVaultGoalById for id ${id}`, error);
+      throw error;
+    }
   }
 
   async createVaultGoal(insertGoal: InsertVaultGoal): Promise<VaultGoal> {
-    const [goal] = await db.insert(vaultGoals).values(insertGoal).returning();
-    return goal;
+    try {
+      this.logDebug(`createVaultGoal for userId ${insertGoal.userId}`, insertGoal);
+      
+      // Ensure currentAmount is set to 0 if not provided
+      const goalData = {
+        ...insertGoal,
+        currentAmount: insertGoal.currentAmount ?? 0,
+        createdAt: new Date()
+      };
+      
+      const [goal] = await db.insert(vaultGoals).values(goalData).returning();
+      
+      this.logDebug(`Created vault goal with id ${goal.id}`, goal);
+      return goal;
+    } catch (error) {
+      this.logError(`createVaultGoal failed for userId ${insertGoal.userId}`, error);
+      throw error;
+    }
   }
 
   async updateVaultGoal(id: number, goalUpdate: Partial<InsertVaultGoal>): Promise<VaultGoal | undefined> {
-    const [updatedGoal] = await db
-      .update(vaultGoals)
-      .set(goalUpdate)
-      .where(eq(vaultGoals.id, id))
-      .returning();
-    return updatedGoal;
+    try {
+      this.logDebug(`updateVaultGoal for id ${id}`, goalUpdate);
+      
+      // First check if the goal exists
+      const existingGoal = await this.getVaultGoalById(id);
+      if (!existingGoal) {
+        this.logDebug(`Goal with id ${id} not found for update`);
+        return undefined;
+      }
+      
+      const [updatedGoal] = await db
+        .update(vaultGoals)
+        .set(goalUpdate)
+        .where(eq(vaultGoals.id, id))
+        .returning();
+      
+      this.logDebug(`Updated vault goal with id ${id}`, updatedGoal);
+      return updatedGoal;
+    } catch (error) {
+      this.logError(`updateVaultGoal failed for id ${id}`, error);
+      throw error;
+    }
   }
 
   async deleteVaultGoal(id: number): Promise<boolean> {
-    const [deletedGoal] = await db
-      .delete(vaultGoals)
-      .where(eq(vaultGoals.id, id))
-      .returning();
-    return !!deletedGoal;
+    try {
+      this.logDebug(`deleteVaultGoal for id ${id}`);
+      
+      // First check if the goal exists
+      const existingGoal = await this.getVaultGoalById(id);
+      if (!existingGoal) {
+        this.logDebug(`Goal with id ${id} not found for deletion`);
+        return false;
+      }
+      
+      // Delete any related transactions
+      // TODO: Implement transaction deletion if needed
+      
+      const [deletedGoal] = await db
+        .delete(vaultGoals)
+        .where(eq(vaultGoals.id, id))
+        .returning();
+      
+      const success = !!deletedGoal;
+      this.logDebug(`Deleted vault goal with id ${id}: ${success ? 'success' : 'failed'}`);
+      
+      return success;
+    } catch (error) {
+      this.logError(`deleteVaultGoal failed for id ${id}`, error);
+      throw error;
+    }
   }
 
   async addFundsToGoal(id: number, amount: number): Promise<VaultGoal | undefined> {
-    const goal = await this.getVaultGoalById(id);
-    if (!goal) return undefined;
-    
-    const updatedGoal = await this.updateVaultGoal(id, {
-      currentAmount: (goal.currentAmount || 0) + amount,
-    });
-    
-    return updatedGoal;
+    try {
+      this.logDebug(`addFundsToGoal for id ${id}, amount ${amount}`);
+      
+      const goal = await this.getVaultGoalById(id);
+      if (!goal) {
+        this.logDebug(`Goal with id ${id} not found for adding funds`);
+        return undefined;
+      }
+      
+      // Create transaction first for better atomicity
+      await this.createTransaction({
+        userId: goal.userId,
+        type: "transfer",
+        sourceId: null,
+        destinationId: id,
+        amount: amount,
+        description: `Added funds to ${goal.name}`,
+        date: new Date(),
+        category: "savings"
+      });
+      
+      const updatedGoal = await this.updateVaultGoal(id, {
+        currentAmount: (goal.currentAmount || 0) + amount,
+      });
+      
+      this.logDebug(`Successfully added ${amount} to goal ${id}`, updatedGoal);
+      return updatedGoal;
+    } catch (error) {
+      this.logError(`addFundsToGoal failed for id ${id}`, error);
+      throw error;
+    }
   }
 
   async withdrawFundsFromGoal(id: number, amount: number): Promise<VaultGoal | undefined> {
-    const goal = await this.getVaultGoalById(id);
-    if (!goal) return undefined;
-    
-    const currentAmount = goal.currentAmount || 0;
-    if (currentAmount < amount) return undefined;
-    
-    const updatedGoal = await this.updateVaultGoal(id, {
-      currentAmount: currentAmount - amount,
-    });
-    
-    return updatedGoal;
+    try {
+      this.logDebug(`withdrawFundsFromGoal for id ${id}, amount ${amount}`);
+      
+      const goal = await this.getVaultGoalById(id);
+      if (!goal) {
+        this.logDebug(`Goal with id ${id} not found for withdrawing funds`);
+        return undefined;
+      }
+      
+      const currentAmount = goal.currentAmount || 0;
+      if (currentAmount < amount) {
+        this.logDebug(`Insufficient funds in goal ${id}: has ${currentAmount}, tried to withdraw ${amount}`);
+        return undefined;
+      }
+      
+      // Create transaction first for better atomicity
+      await this.createTransaction({
+        userId: goal.userId,
+        type: "transfer",
+        sourceId: id,
+        destinationId: null,
+        amount: amount,
+        description: `Withdrew funds from ${goal.name}`,
+        date: new Date(),
+        category: "withdrawal"
+      });
+      
+      const updatedGoal = await this.updateVaultGoal(id, {
+        currentAmount: currentAmount - amount,
+      });
+      
+      this.logDebug(`Successfully withdrew ${amount} from goal ${id}`, updatedGoal);
+      return updatedGoal;
+    } catch (error) {
+      this.logError(`withdrawFundsFromGoal failed for id ${id}`, error);
+      throw error;
+    }
   }
 
   // Debts operations
