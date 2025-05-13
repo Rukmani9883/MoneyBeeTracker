@@ -131,10 +131,7 @@ const DebtForm = ({
       
       if (debt) {
         // Update existing debt
-        await apiRequest(`/api/debts/${debt.id}`, {
-          method: "PUT",
-          body: JSON.stringify(debtData)
-        });
+        await apiRequest("PUT", `/api/debts/${debt.id}`, debtData);
         toast({
           title: "Success",
           description: "Debt updated successfully.",
