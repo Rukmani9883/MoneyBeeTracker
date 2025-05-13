@@ -7,23 +7,27 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
+export async function apiRequest<T = any>(
+  method: string,
   url: string,
-  options: RequestInit = {}
-): Promise<Response> {
+  data?: any,
+  customOptions: Partial<RequestInit> = {}
+): Promise<T> {
   const defaultOptions: RequestInit = {
+    method,
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
+    body: data ? JSON.stringify(data) : undefined
   };
   
   const fetchOptions = {
     ...defaultOptions,
-    ...options,
+    ...customOptions,
     headers: {
       ...defaultOptions.headers,
-      ...(options.headers || {}),
+      ...(customOptions.headers || {}),
     },
   };
   
@@ -32,7 +36,7 @@ export async function apiRequest(
     await throwIfResNotOk(res);
     
     // Automatically invalidate related query caches based on the URL
-    if (options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method)) {
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
       const endpoint = url.split('?')[0];
       const basePath = endpoint.split('/').slice(0, -1).join('/') || endpoint;
       
@@ -51,7 +55,7 @@ export async function apiRequest(
       }
     }
     
-    return res;
+    return res.json() as Promise<T>;
   } catch (error) {
     console.error("API request failed:", error);
     throw error;

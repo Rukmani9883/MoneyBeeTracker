@@ -736,6 +736,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: error.message });
     }
   });
+  
+  // Auto-allocate savings to vault goals based on proportional distribution
+  app.post(`${api}/auto-allocate-savings`, async (req: Request, res: Response) => {
+    try {
+      const { userId, amount, month, year } = req.body;
+      
+      if (!userId || !amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Missing or invalid parameters" });
+      }
+      
+      // Get all active vault goals
+      const goals = await storage.getVaultGoals(userId);
+      
+      if (!goals || goals.length === 0) {
+        return res.status(200).json({ 
+          message: "No goals available for allocation", 
+          allocated: false 
+        });
+      }
+      
+      // Calculate total target amount across all incomplete goals
+      const incompleteGoals = goals.filter(goal => {
+        const currentAmount = goal.currentAmount || 0;
+        return currentAmount < goal.targetAmount;
+      });
+      
+      if (incompleteGoals.length === 0) {
+        return res.status(200).json({ 
+          message: "All goals are already complete", 
+          allocated: false 
+        });
+      }
+      
+      // Calculate total remaining amount needed across all incomplete goals
+      const totalRemainingAmount = incompleteGoals.reduce((total, goal) => {
+        return total + (goal.targetAmount - (goal.currentAmount || 0));
+      }, 0);
+      
+      console.log(`Auto-allocating ₹${amount} to ${incompleteGoals.length} goals. Total needed: ₹${totalRemainingAmount}`);
+      
+      // Allocate savings proportionally to each goal based on remaining amount needed
+      const allocations = [];
+      let remainingAllocation = amount;
+      
+      for (const goal of incompleteGoals) {
+        // Calculate remaining needed for this goal
+        const currentAmount = goal.currentAmount || 0;
+        const remainingNeeded = goal.targetAmount - currentAmount;
+        
+        // Calculate proportion based on remaining amount needed
+        const proportion = remainingNeeded / totalRemainingAmount;
+        
+        // Calculate allocation amount (rounded to nearest integer)
+        let allocation = Math.min(remainingAllocation, Math.round(amount * proportion));
+        
+        // Ensure we don't exceed the goal target
+        allocation = Math.min(allocation, remainingNeeded);
+        
+        if (allocation > 0) {
+          // Update the goal with the allocated amount
+          const newAmount = currentAmount + allocation;
+          await storage.updateVaultGoal(goal.id, {
+            currentAmount: newAmount
+          });
+          
+          // Create a transaction record for this allocation
+          await storage.createTransaction({
+            userId,
+            type: "transfer",
+            amount: allocation,
+            description: `Auto-allocation to ${goal.name}`,
+            category: "Savings",
+            date: new Date()
+          });
+          
+          // Record the allocation
+          allocations.push({
+            goalId: goal.id,
+            goalName: goal.name,
+            allocatedAmount: allocation,
+            newTotal: newAmount,
+            targetAmount: goal.targetAmount,
+            percentage: Math.round((newAmount / goal.targetAmount) * 100)
+          });
+          
+          remainingAllocation -= allocation;
+        }
+        
+        // If we've allocated all available funds, stop
+        if (remainingAllocation <= 0) break;
+      }
+      
+      // If there's still money left and we have goals, allocate the rest to the first goal
+      if (remainingAllocation > 0 && incompleteGoals.length > 0) {
+        const firstGoal = incompleteGoals[0];
+        const remainingNeeded = firstGoal.targetAmount - (firstGoal.currentAmount || 0);
+        
+        // Only allocate if there's still room in the goal
+        if (remainingNeeded > 0) {
+          const additionalAmount = Math.min(remainingAllocation, remainingNeeded);
+          const newAmount = (firstGoal.currentAmount || 0) + additionalAmount;
+          
+          // Update the goal
+          await storage.updateVaultGoal(firstGoal.id, {
+            currentAmount: newAmount
+          });
+          
+          // Update the existing allocation or add a new one
+          const existingAllocation = allocations.find(a => a.goalId === firstGoal.id);
+          if (existingAllocation) {
+            existingAllocation.allocatedAmount += additionalAmount;
+            existingAllocation.newTotal = newAmount;
+            existingAllocation.percentage = Math.round((newAmount / firstGoal.targetAmount) * 100);
+          } else {
+            allocations.push({
+              goalId: firstGoal.id,
+              goalName: firstGoal.name,
+              allocatedAmount: additionalAmount,
+              newTotal: newAmount,
+              targetAmount: firstGoal.targetAmount,
+              percentage: Math.round((newAmount / firstGoal.targetAmount) * 100)
+            });
+          }
+          
+          // Create another transaction record for this additional allocation
+          await storage.createTransaction({
+            userId,
+            type: "transfer",
+            amount: additionalAmount,
+            description: `Additional allocation to ${firstGoal.name}`,
+            category: "Savings",
+            date: new Date()
+          });
+          
+          remainingAllocation -= additionalAmount;
+        }
+      }
+      
+      console.log(`Allocation complete. Allocated: ₹${amount - remainingAllocation}, Remaining: ₹${remainingAllocation}`);
+      
+      // Set header to notify of financial data changes
+      res.set('X-Financial-Data-Changed', 'true');
+      
+      // Return the allocation results
+      res.status(200).json({
+        allocated: true,
+        totalAmount: amount,
+        totalAllocated: amount - remainingAllocation,
+        allocations,
+        remainingUnallocated: remainingAllocation
+      });
+    } catch (error) {
+      console.error("Error auto-allocating savings:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
 
   // Debt routes
   app.get(`${api}/debts`, async (req: Request, res: Response) => {
