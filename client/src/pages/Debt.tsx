@@ -63,13 +63,31 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   const { data: debts, isLoading } = useQuery<Debt[]>({
     queryKey: ['/api/debts', userId, selectedMonth, selectedYear],
     queryFn: async () => {
+      console.log("Fetching debts...");
       // For JavaScript, months are 0-based (0 = January, 11 = December)
       // But the API expects 1-based months, so we add 1 to selectedMonth
       const jsMonth = selectedMonth + 1;
-      const res = await fetch(`/api/debts?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
-      if (!res.ok) throw new Error('Failed to fetch debts');
-      return res.json();
-    }
+      const res = await fetch(`/api/debts?userId=${userId}`);
+      
+      if (!res.ok) {
+        console.error("Failed to fetch debts:", await res.text());
+        throw new Error('Failed to fetch debts');
+      }
+      
+      const allDebts = await res.json();
+      console.log("All debts fetched:", allDebts);
+      
+      // Filter locally for debts without due dates or with matching date
+      return allDebts.filter((debt: Debt) => {
+        // Always include debts without due dates
+        if (!debt.dueDate) return true;
+        
+        const dueDate = new Date(debt.dueDate);
+        return dueDate.getMonth() === selectedMonth && dueDate.getFullYear() === selectedYear;
+      });
+    },
+    refetchOnWindowFocus: true,
+    staleTime: 1000, // Short stale time to ensure frequent refreshes
   });
   
   const handleDateChange = (month: number, year: number) => {
@@ -80,9 +98,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   // Delete debt mutation
   const deleteDebtMutation = useMutation({
     mutationFn: async (debtId: number) => {
-      return apiRequest(`/api/debts/${debtId}`, {
-        method: 'DELETE'
-      });
+      return apiRequest("DELETE", `/api/debts/${debtId}`);
     },
     onSuccess: () => {
       toast({
