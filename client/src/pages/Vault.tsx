@@ -55,13 +55,24 @@ const VaultPage = ({ userId }: VaultPageProps) => {
   const queryClient = useQueryClient();
 
   // Get vault goals
-  const { data: goals, isLoading } = useQuery<VaultGoal[]>({
-    queryKey: ['/api/vault-goals', { userId }],
+  const { data: goals, isLoading, refetch } = useQuery<VaultGoal[]>({
+    queryKey: ['/api/vault-goals', userId],
     queryFn: async () => {
+      console.log(`Fetching vault goals for user ${userId}...`);
       const res = await fetch(`/api/vault-goals?userId=${userId}`);
-      if (!res.ok) throw new Error('Failed to fetch vault goals');
-      return res.json();
-    }
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Failed to fetch vault goals: ${errorText}`);
+        throw new Error(`Failed to fetch vault goals: ${errorText}`);
+      }
+      
+      const data = await res.json();
+      console.log('Vault goals fetched:', data);
+      return data;
+    },
+    refetchOnWindowFocus: true,
+    staleTime: 1000, // Short stale time to ensure frequent refreshes
   });
 
   // Add funds mutation
