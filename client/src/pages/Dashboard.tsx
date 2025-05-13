@@ -2,13 +2,10 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import SummaryCard from "@/components/SummaryCard";
-import ExpenseChart from "@/components/ExpenseChart";
-import Vault from "@/components/Vault";
 import RecentTransactions from "@/components/RecentTransactions";
 import UpcomingBills from "@/components/UpcomingBills";
 import DateSelector from "@/components/DateSelector";
 import { ResetDataButton } from "@/components/ResetDataButton";
-import { apiRequest } from "@/lib/queryClient";
 import { 
   SalaryIcon, 
   ShoppingIcon, 
@@ -17,6 +14,8 @@ import {
   OtherIcon
 } from "@/components/CategoryIcons";
 import AnimatedIcon from "@/components/AnimatedIcon";
+import ExpenseChart from "@/components/ExpenseChart";
+import Vault from "@/components/Vault";
 
 interface DashboardProps {
   userId: number;
@@ -105,8 +104,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
       window.removeEventListener('financial-data-changed', handleFinancialDataChange);
     };
   }, [queryClient, userId, selectedMonth, selectedYear]);
-
-  // No need for empty monthly data anymore since we're using ExpenseChart
 
   return (
     <>
