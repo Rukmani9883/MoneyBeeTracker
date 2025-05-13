@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { VaultGoal } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 import { formatCurrency, formatDateRelative } from "@/lib/utils";
 import ProgressBar from "@/components/ProgressBar";
 import { useToast } from "@/hooks/use-toast";

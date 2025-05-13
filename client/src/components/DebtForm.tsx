@@ -97,7 +97,7 @@ const DebtForm = ({
       form.reset({
         userId: userId,
         name: debt.name,
-        isOwedByUser: debt.isOwedByUser,
+        isOwedByUser: debt.isOwedByUser || false,
         totalAmount: debt.totalAmount.toString(),
         remainingAmount: debt.remainingAmount.toString(),
         interestRate: debt.interestRate?.toString() || "",
@@ -139,10 +139,7 @@ const DebtForm = ({
         });
       } else {
         // Create new debt
-        await apiRequest("/api/debts", {
-          method: "POST",
-          body: JSON.stringify(debtData)
-        });
+        await apiRequest("POST", "/api/debts", debtData);
         toast({
           title: "Success",
           description: "Debt added successfully.",
@@ -156,10 +153,10 @@ const DebtForm = ({
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to ${debt ? "update" : "create"} debt: ${error.message}`,
+        description: `Failed to ${debt ? "update" : "create"} debt: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
