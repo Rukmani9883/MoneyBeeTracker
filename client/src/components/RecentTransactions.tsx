@@ -118,10 +118,21 @@ const RecentTransactions = ({
     );
   }
 
-  // Sort and limit transactions if needed
+  // Prepare transactions for display by removing duplicates and sorting
   const displayTransactions = transactions
     ? [...transactions]
+        // Filter out duplicate transactions by source
+        .filter((transaction, index, self) => {
+          // Keep the first occurrence of each sourceId
+          if (!transaction.sourceId) return true;
+          return index === self.findIndex(t => 
+            t.sourceId === transaction.sourceId && 
+            t.type === transaction.type
+          );
+        })
+        // Sort by date, newest first
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        // Apply the limit
         .slice(0, limit)
     : [];
 
