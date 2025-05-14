@@ -1149,12 +1149,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total expenses for current month
       const totalExpenses = await storage.getTotalExpenses(userId, month, year);
       
-      // Get debt payments for the month (monthly EMIs)
-      const debts = await storage.getDebts(userId);
-      const debtPayments = debts
-        .filter(debt => debt.isOwedByUser && debt.monthlyPayment > 0)
-        .reduce((total, debt) => total + (debt.monthlyPayment || 0), 0);
-      
       // Get bills due this month
       const monthStartDate = new Date(year, month - 1, 1);
       const monthEndDate = new Date(year, month, 0); // Last day of month
@@ -1167,14 +1161,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const billPayments = billsDueThisMonth.reduce((total, bill) => total + bill.amount, 0);
       
-      // Calculate remaining savings after expenses, debt payments, and bills
-      const totalOutflow = totalExpenses + debtPayments + billPayments;
+      // Calculate remaining savings after expenses and bills
+      const totalOutflow = totalExpenses + billPayments;
       const savings = Math.max(0, totalIncome - totalOutflow);
       
       console.log(`Financial summary:
         Total Income: ${totalIncome}
         Total Expenses: ${totalExpenses}
-        Debt Payments: ${debtPayments}
         Bill Payments: ${billPayments}
         Total Outflow: ${totalOutflow}
         Calculated Savings: ${savings}
@@ -1183,10 +1176,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all vault goals and sum up current amounts
       const vaultGoals = await storage.getVaultGoals(userId);
       const totalVault = vaultGoals.reduce((total, goal) => total + (goal.currentAmount || 0), 0);
-      
-      // Get total debts
-      const totalDebtsOwed = await storage.getTotalDebts(userId, true);
-      const totalDebtsOwedToUser = await storage.getTotalDebts(userId, false);
       
       // Get all bills for the user
       const allBills = await storage.getBills(userId);
@@ -1223,12 +1212,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({
         totalIncome,
         totalExpenses,
-        debtPayments,
         billPayments,
         savings,
         totalVault,
-        totalDebts: totalDebtsOwed,
-        totalDebtsOwedToUser,
         totalUpcomingBills,
         upcomingBills,
         recentTransactions,
@@ -1425,32 +1411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes: "Monthly car loan payment"
       });
       
-      // Create sample debts
-      await storage.createDebt({
-        userId,
-        name: "Car Loan",
-        isOwedByUser: true,
-        totalAmount: 15000,
-        remainingAmount: 12500,
-        interestRate: 4.5,
-        dueDate: new Date(currentYear + 3, 0, 1),
-        monthlyPayment: 275.50,
-        category: "Auto Loan",
-        notes: "5-year car loan"
-      });
-      
-      await storage.createDebt({
-        userId,
-        name: "John's Borrowed Money",
-        isOwedByUser: false,
-        totalAmount: 500,
-        remainingAmount: 500,
-        interestRate: 0,
-        dueDate: new Date(currentYear, currentMonth + 1, 15),
-        monthlyPayment: 500,
-        category: "Personal Loan",
-        notes: "Money lent to John"
-      });
+      // Debt section removed
       
       res.status(200).json({ message: "Demo data created successfully" });
     } catch (error) {
