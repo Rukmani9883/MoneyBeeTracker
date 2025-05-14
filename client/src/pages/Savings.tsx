@@ -371,10 +371,10 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
                 </div>
 
                 <Button 
-                  className="w-full bg-[#2D2D2D] hover:bg-[#3D3D3D] text-[#CCCCCC]"
+                  className="w-full bg-[#2D2D2D] hover:bg-[#3D3D3D] text-white"
                   onClick={() => setIsSettingGoal(true)}
                 >
-                  <Target className="h-4 w-4 mr-2" />
+                  <Target className="h-4 w-4 mr-2 text-white" />
                   Update Savings Goal
                 </Button>
               </div>
@@ -451,7 +451,7 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="goal-amount">Goal Amount ($)</Label>
+              <Label htmlFor="goal-amount" className="text-white">Goal Amount (₹)</Label>
               <Input
                 id="goal-amount"
                 type="number"
