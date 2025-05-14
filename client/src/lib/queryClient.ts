@@ -8,18 +8,37 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest<T = any>(
-  method: string,
-  url: string,
+  methodOrUrl: string,
+  urlOrData?: any,
   data?: any,
   customOptions: Partial<RequestInit> = {}
 ): Promise<T> {
+  // Handle both usage patterns:
+  // 1. apiRequest('DELETE', '/api/incomes/123')
+  // 2. apiRequest('/api/incomes/123', { method: 'DELETE' })
+  let method: string;
+  let url: string;
+  let bodyData: any = data;
+  
+  if (urlOrData && typeof urlOrData === 'object' && urlOrData.method) {
+    // Pattern 2: first param is URL, second is options object with method
+    method = urlOrData.method;
+    url = methodOrUrl;
+    bodyData = urlOrData.data || undefined;
+  } else {
+    // Pattern 1: first param is method, second is URL
+    method = methodOrUrl;
+    url = urlOrData;
+    bodyData = data;
+  }
+  
   const defaultOptions: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: data ? JSON.stringify(data) : undefined
+    body: bodyData ? JSON.stringify(bodyData) : undefined
   };
   
   const fetchOptions = {
@@ -30,6 +49,8 @@ export async function apiRequest<T = any>(
       ...(customOptions.headers || {}),
     },
   };
+  
+  console.log(`Making ${method} request to ${url}`);
   
   try {
     const res = await fetch(url, fetchOptions);
