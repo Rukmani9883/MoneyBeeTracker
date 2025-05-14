@@ -131,7 +131,37 @@ export const insertVaultGoalSchema = createInsertSchema(vaultGoals)
     deadline: z.string().optional().transform(str => str ? new Date(str) : undefined),
   });
 
-// Debt Schema - Removed
+// Debt Schema
+export const debts = pgTable("debts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  isOwedByUser: boolean("is_owed_by_user").default(true),
+  totalAmount: doublePrecision("total_amount").notNull(),
+  remainingAmount: doublePrecision("remaining_amount").notNull(),
+  interestRate: doublePrecision("interest_rate"),
+  dueDate: timestamp("due_date"),
+  monthlyPayment: doublePrecision("monthly_payment"),
+  category: text("category"),
+  notes: text("notes"),
+});
+
+export const insertDebtSchema = createInsertSchema(debts)
+  .pick({
+    userId: true,
+    name: true,
+    isOwedByUser: true,
+    totalAmount: true,
+    remainingAmount: true,
+    interestRate: true,
+    dueDate: true,
+    monthlyPayment: true,
+    category: true,
+    notes: true,
+  })
+  .extend({
+    dueDate: z.string().optional().transform(str => str ? new Date(str) : undefined),
+  });
 
 // Bills & EMI Schema
 export const bills = pgTable("bills", {
@@ -218,3 +248,7 @@ export type InsertBill = z.infer<typeof insertBillSchema>;
 
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+
+// Debt types
+export type Debt = typeof debts.$inferSelect;
+export type InsertDebt = z.infer<typeof insertDebtSchema>;
