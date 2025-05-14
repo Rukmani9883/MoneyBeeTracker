@@ -100,7 +100,6 @@ export class MemStorage implements IStorage {
     this.expenses = new Map();
     this.savings = new Map();
     this.vaultGoals = new Map();
-    this.debts = new Map();
     this.bills = new Map();
     this.transactions = new Map();
     
@@ -109,7 +108,6 @@ export class MemStorage implements IStorage {
     this.expenseId = 1;
     this.savingId = 1;
     this.vaultGoalId = 1;
-    this.debtId = 1;
     this.billId = 1;
     this.transactionId = 1;
 
@@ -445,61 +443,7 @@ export class MemStorage implements IStorage {
     return updatedGoal;
   }
 
-  // Debt methods
-  async getDebts(userId: number): Promise<Debt[]> {
-    return Array.from(this.debts.values())
-      .filter(debt => debt.userId === userId)
-      .sort((a, b) => {
-        // Sort by due date if available, otherwise by id
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        return a.id - b.id;
-      });
-  }
-
-  async getDebtById(id: number): Promise<Debt | undefined> {
-    return this.debts.get(id);
-  }
-
-  async createDebt(insertDebt: InsertDebt): Promise<Debt> {
-    const id = this.debtId++;
-    const debt: Debt = { ...insertDebt, id };
-    this.debts.set(id, debt);
-    return debt;
-  }
-
-  async updateDebt(id: number, debtUpdate: Partial<InsertDebt>): Promise<Debt | undefined> {
-    const existingDebt = this.debts.get(id);
-    if (!existingDebt) return undefined;
-    
-    const updatedDebt = { ...existingDebt, ...debtUpdate };
-    this.debts.set(id, updatedDebt);
-    return updatedDebt;
-  }
-
-  async deleteDebt(id: number): Promise<boolean> {
-    const debt = this.debts.get(id);
-    if (!debt) return false;
-
-    // Delete all related transactions
-    await this.deleteRelatedTransactions(debt.userId, "expense", debt.name);
-    
-    return this.debts.delete(id);
-  }
-
-  async getDebtsByOwnership(userId: number, isOwedByUser: boolean): Promise<Debt[]> {
-    return Array.from(this.debts.values())
-      .filter(debt => 
-        debt.userId === userId && 
-        debt.isOwedByUser === isOwedByUser
-      );
-  }
-
-  async getTotalDebts(userId: number, isOwedByUser: boolean): Promise<number> {
-    const debts = await this.getDebtsByOwnership(userId, isOwedByUser);
-    return debts.reduce((total, debt) => total + debt.remainingAmount, 0);
-  }
+  // Debt module has been removed
 
   // Bill methods
   async getBills(userId: number): Promise<Bill[]> {
@@ -886,14 +830,7 @@ export class MemStorage implements IStorage {
       });
       vaultGoalIdsToDelete.forEach(id => this.vaultGoals.delete(id));
       
-      // Delete all debts for this user
-      const debtIdsToDelete: number[] = [];
-      this.debts.forEach((debt, id) => {
-        if (debt.userId === userId) {
-          debtIdsToDelete.push(id);
-        }
-      });
-      debtIdsToDelete.forEach(id => this.debts.delete(id));
+      // Debt module has been removed
       
       // Delete all bills for this user
       const billIdsToDelete: number[] = [];
