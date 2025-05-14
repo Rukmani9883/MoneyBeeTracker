@@ -167,7 +167,12 @@ const BillsPage = ({ userId }: BillsPageProps) => {
     if (activeTab === "upcoming") {
       // Make sure we're using the same upcomingBills in both places
       if (upcomingBills && upcomingBills.length > 0) {
-        return upcomingBills;
+        // Filter to only show upcoming (not overdue) bills
+        const now = new Date();
+        return upcomingBills.filter(bill => {
+          const dueDate = new Date(bill.dueDate);
+          return !bill.isPaid && dueDate >= now;
+        });
       } else {
         // Fallback: Find upcoming bills from the main bills array
         const now = new Date();
@@ -179,6 +184,13 @@ const BillsPage = ({ userId }: BillsPageProps) => {
           return !bill.isPaid && dueDate >= now && dueDate <= futureDate;
         });
       }
+    } else if (activeTab === "past-due") {
+      // Show overdue bills
+      const now = new Date();
+      return bills.filter(bill => {
+        const dueDate = new Date(bill.dueDate);
+        return !bill.isPaid && dueDate < now;
+      });
     } else if (activeTab === "paid") {
       return bills.filter(bill => bill.isPaid);
     } else {
@@ -344,6 +356,12 @@ const BillsPage = ({ userId }: BillsPageProps) => {
                     Upcoming
                   </TabsTrigger>
                   <TabsTrigger 
+                    value="past-due" 
+                    className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-[#121212]"
+                  >
+                    Past Due
+                  </TabsTrigger>
+                  <TabsTrigger 
                     value="all" 
                     className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-[#121212]"
                   >
@@ -432,9 +450,10 @@ const BillsPage = ({ userId }: BillsPageProps) => {
                     </div>
                   ) : (
                     <div className="text-center py-10 text-[#CCCCCC]">
-                      <p className="text-lg mb-2">No {activeTab} bills found</p>
+                      <p className="text-lg mb-2">No {activeTab === 'past-due' ? 'overdue' : activeTab} bills found</p>
                       <p className="text-sm text-[#999999] mb-4">
                         {activeTab === "upcoming" ? "You have no upcoming bills" : 
+                         activeTab === "past-due" ? "You have no overdue bills" :
                          activeTab === "paid" ? "No bills have been paid yet" :
                          "Start adding your bills to track them"}
                       </p>
