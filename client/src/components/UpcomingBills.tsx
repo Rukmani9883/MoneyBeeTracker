@@ -23,33 +23,42 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
   // For API call we need to add 1 to month because JS months are 0-based
   const apiMonth = selectedMonth + 1;
 
-  const { data: bills, isLoading } = useQuery<Bill[]>({
-    queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }],
+  const { data: allBills, isLoading: isLoadingBills } = useQuery<Bill[]>({
+    queryKey: ['/api/bills', { userId, month: apiMonth, year: selectedYear }],
     queryFn: async () => {
-      // No need to send month/year for upcoming bills endpoint - 
-      // it works based on current date and future days
-      const url = `/api/bills/upcoming?userId=${userId}&daysAhead=30`;
       try {
-        console.log(`Fetching upcoming bills from: ${url}`);
+        const url = `/api/bills?userId=${userId}`;
         const res = await fetch(url);
         if (!res.ok) {
-          console.error(`Error fetching upcoming bills: ${res.status} ${res.statusText}`);
+          console.error(`Error fetching bills: ${res.status} ${res.statusText}`);
           return [];
         }
-        const data = await res.json();
-        console.log(`Received ${data.length} upcoming bills`);
-        return data;
+        return await res.json();
       } catch (error) {
-        console.error('Failed to fetch upcoming bills:', error);
+        console.error('Failed to fetch bills:', error);
         return [];
       }
     }
   });
+  
+  // Filter bills to show only upcoming ones
+  const bills = allBills?.filter(bill => {
+    if (!bill.dueDate) return false;
+    
+    const dueDate = new Date(bill.dueDate);
+    const now = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(now.getDate() + 30);
+    
+    return !bill.isPaid && dueDate >= now && dueDate <= futureDate;
+  }) || [];
+  
+  const isLoading = isLoadingBills;
 
   // Define the refresh function to be reused
   const refreshBills = useCallback(() => {
     queryClient.invalidateQueries({ 
-      queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }]
+      queryKey: ['/api/bills', { userId, month: apiMonth, year: selectedYear }]
     });
   }, [queryClient, userId, apiMonth, selectedYear]);
   
@@ -57,7 +66,7 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
   useEffect(() => {
     // Function to handle the financial data changed event
     const handleFinancialDataChanged = () => {
-      console.log('Financial data changed, refreshing upcoming bills');
+      console.log('Financial data changed, refreshing bills');
       refreshBills();
     };
     
@@ -78,6 +87,7 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
       });
     },
     onSuccess: () => {
+      // Invalidate both the bills query and the dashboard summary
       refreshBills();
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       // Notify other components of the data change

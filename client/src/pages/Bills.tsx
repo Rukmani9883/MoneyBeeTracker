@@ -285,19 +285,17 @@ const BillsPage = ({ userId }: BillsPageProps) => {
           <Card className="bg-[#1E1E1E] border-[#2D2D2D]">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-3">
-                <div className="text-[#CCCCCC] font-medium text-sm">Total Upcoming Bills</div>
+                <div className="text-[#CCCCCC] font-medium text-sm">Total Bill Amount</div>
                 <div className="text-[#2196F3]">
                   <Calendar className="h-5 w-5" />
                 </div>
               </div>
-              <div className="font-mono font-medium text-xl text-white">{formatCurrency(totalUpcomingAmount)}</div>
+              <div className="font-mono font-medium text-xl text-white">
+                {formatCurrency(bills?.reduce((total, bill) => total + (bill.isPaid ? 0 : bill.amount), 0) || 0)}
+              </div>
               <div className="mt-2 text-xs flex items-center text-[#CCCCCC]">
                 <span>
-                  {upcomingBills?.filter(bill => {
-                    const dueDate = new Date(bill.dueDate);
-                    const now = new Date();
-                    return !bill.isPaid && dueDate >= now;
-                  }).length || 0} bills due in the next 30 days
+                  {bills?.filter(bill => !bill.isPaid).length || 0} unpaid bills
                 </span>
               </div>
             </CardContent>
