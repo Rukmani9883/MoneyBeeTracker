@@ -118,7 +118,10 @@ const DebtPage = ({ userId }: DebtPageProps) => {
         description: "The debt record has been removed successfully.",
         variant: "default",
       });
+      // Invalidate all debt-related queries
       queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/debts/owed-by-user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/debts/owed-to-user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
@@ -139,23 +142,39 @@ const DebtPage = ({ userId }: DebtPageProps) => {
     }
   };
 
+  // Extract data from the API responses
+  const debtsYouOwe = youOweData?.debts || [];
+  const debtsOwedToYou = owedToYouData?.debts || [];
+  const totalYouOwe = youOweData?.total || 0;
+  const totalOwedToYou = owedToYouData?.total || 0;
+  
   // Filter debts based on active tab
-  const filteredDebts = debts?.filter(debt => {
-    if (activeTab === "you-owe") return debt.isOwedByUser;
-    return !debt.isOwedByUser;
-  }) || [];
-
-  // Calculate total debt amounts
-  const totalYouOwe = debts?.filter(d => d.isOwedByUser).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
-  const totalOwedToYou = debts?.filter(d => !d.isOwedByUser).reduce((sum, debt) => sum + debt.remainingAmount, 0) || 0;
+  const filteredDebts = activeTab === "you-owe" ? debtsYouOwe : debtsOwedToYou;
 
   // Data for pie chart (by category)
-  const getPieChartData = (isOwedByUser: boolean) => {
-    if (!debts) return [];
+  const getPieChartDataForYouOwe = () => {
+    if (!debtsYouOwe || debtsYouOwe.length === 0) return [];
     
     const categoryMap = new Map<string, number>();
     
-    debts.filter(d => d.isOwedByUser === isOwedByUser).forEach(debt => {
+    debtsYouOwe.forEach(debt => {
+      const category = debt.category || 'Other';
+      const existing = categoryMap.get(category) || 0;
+      categoryMap.set(category, existing + debt.remainingAmount);
+    });
+    
+    return Array.from(categoryMap.entries()).map(([name, value]) => ({
+      name,
+      value
+    }));
+  };
+  
+  const getPieChartDataForOwedToYou = () => {
+    if (!debtsOwedToYou || debtsOwedToYou.length === 0) return [];
+    
+    const categoryMap = new Map<string, number>();
+    
+    debtsOwedToYou.forEach(debt => {
       const category = debt.category || 'Other';
       const existing = categoryMap.get(category) || 0;
       categoryMap.set(category, existing + debt.remainingAmount);
@@ -167,8 +186,8 @@ const DebtPage = ({ userId }: DebtPageProps) => {
     }));
   };
 
-  const youOweChartData = getPieChartData(true);
-  const owedToYouChartData = getPieChartData(false);
+  const youOweChartData = getPieChartDataForYouOwe();
+  const owedToYouChartData = getPieChartDataForOwedToYou();
   
   // Colors for the pie chart
   const COLORS = ['#F44336', '#2196F3', '#FFD700', '#FF9800', '#9C27B0', '#4CAF50'];
@@ -183,42 +202,79 @@ const DebtPage = ({ userId }: DebtPageProps) => {
           <DateSelector onDateChange={handleDateChange} />
         </div>
         
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="bg-[#1E1E1E] border-[#2D2D2D]">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-3">
-                <div className="text-[#CCCCCC] font-medium text-sm">Total I Owe</div>
+        {/* Two-Panel Layout: Debts You Owe and Debts Owed to You */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* LEFT PANEL: Debts You Owe */}
+          <Card className="bg-[#1E1E1E] border-[#2D2D2D] shadow-md h-full">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-white flex items-center justify-between">
+                <span>Total You Owe</span>
                 <div className="text-[#F44336]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
                     <path d="M22 4L12 14.01l-3-3"></path>
                   </svg>
                 </div>
+              </CardTitle>
+              <CardDescription className="text-[#999999]">
+                Money you need to pay others
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="font-mono font-medium text-2xl text-white mb-4">{formatCurrency(totalYouOwe)}</div>
+              
+              <div className="mb-4">
+                <div className="h-[200px]">
+                  {youOweChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={youOweChartData}
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          labelLine={false}
+                        >
+                          {youOweChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[#999999]">
+                      No debt data to display
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="font-mono font-medium text-xl text-white">{formatCurrency(totalYouOwe)}</div>
-              <div className="mt-2 text-xs flex items-center text-[#CCCCCC]">
-                <span className="mr-2">Across {debts?.filter(d => d.isOwedByUser).length || 0} loans</span>
+              
+              <div className="mt-2 flex items-center justify-between text-[#CCCCCC]">
+                <span>Total {debtsYouOwe.length} loans</span>
                 <Button 
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-6 px-2 py-0 text-xs text-[#FFD700] hover:bg-[#2D2D2D] hover:text-[#FFD700]"
+                  className="text-[#FFD700] border-[#FFD700] hover:bg-[#2D2D2D] hover:text-[#FFD700]"
                   onClick={() => {
                     setShowAddForm(true);
                     setActiveTab("you-owe");
                   }}
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Add
+                  Add Debt
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-[#1E1E1E] border-[#2D2D2D]">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-3">
-                <div className="text-[#CCCCCC] font-medium text-sm">Total Owed to You</div>
+          {/* RIGHT PANEL: Debts Owed to You */}
+          <Card className="bg-[#1E1E1E] border-[#2D2D2D] shadow-md h-full">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-white flex items-center justify-between">
+                <span>Total Owed to You</span>
                 <div className="text-[#4CAF50]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
@@ -226,21 +282,56 @@ const DebtPage = ({ userId }: DebtPageProps) => {
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                   </svg>
                 </div>
+              </CardTitle>
+              <CardDescription className="text-[#999999]">
+                Money others need to pay you
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="font-mono font-medium text-2xl text-white mb-4">{formatCurrency(totalOwedToYou)}</div>
+              
+              <div className="mb-4">
+                <div className="h-[200px]">
+                  {owedToYouChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={owedToYouChartData}
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          labelLine={false}
+                        >
+                          {owedToYouChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[#999999]">
+                      No debt data to display
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="font-mono font-medium text-xl text-white">{formatCurrency(totalOwedToYou)}</div>
-              <div className="mt-2 text-xs flex items-center text-[#CCCCCC]">
-                <span className="mr-2">From {debts?.filter(d => !d.isOwedByUser).length || 0} borrowers</span>
+              
+              <div className="mt-2 flex items-center justify-between text-[#CCCCCC]">
+                <span>From {debtsOwedToYou.length} borrowers</span>
                 <Button 
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-6 px-2 py-0 text-xs text-[#FFD700] hover:bg-[#2D2D2D] hover:text-[#FFD700]"
+                  className="text-[#FFD700] border-[#FFD700] hover:bg-[#2D2D2D] hover:text-[#FFD700]"
                   onClick={() => {
                     setShowAddForm(true);
                     setActiveTab("owed-to-you");
                   }}
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Add
+                  Add Debt
                 </Button>
               </div>
             </CardContent>
@@ -282,7 +373,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
                 </TabsList>
                 
                 <TabsContent value="you-owe" className="mt-4">
-                  {isLoading ? (
+                  {isLoadingYouOwe ? (
                     <div className="animate-pulse">
                       <div className="h-8 bg-[#2D2D2D] rounded w-full mb-4"></div>
                       <div className="h-8 bg-[#2D2D2D] rounded w-full mb-4"></div>
@@ -357,7 +448,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
                 </TabsContent>
                 
                 <TabsContent value="owed-to-you" className="mt-4">
-                  {isLoading ? (
+                  {isLoadingOwedToYou ? (
                     <div className="animate-pulse">
                       <div className="h-8 bg-[#2D2D2D] rounded w-full mb-4"></div>
                       <div className="h-8 bg-[#2D2D2D] rounded w-full mb-4"></div>
