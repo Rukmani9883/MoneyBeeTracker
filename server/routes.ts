@@ -7,6 +7,7 @@ import {
   insertExpenseSchema,
   insertSavingsSchema,
   insertVaultGoalSchema,
+  insertDebtSchema,
   insertBillSchema,
   insertTransactionSchema
 } from "@shared/schema";
@@ -892,7 +893,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Debt routes have been removed
+  // Debt Manager routes
+  app.get(`${api}/debts`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const debts = await storage.getDebts(userId);
+      res.status(200).json(debts);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/debts/owed-by-user`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const debts = await storage.getOwedByUserDebts(userId);
+      const total = await storage.getTotalDebts(userId, true);
+      res.status(200).json({ debts, total });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/debts/owed-to-user`, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const debts = await storage.getOwedToUserDebts(userId);
+      const total = await storage.getTotalDebts(userId, false);
+      res.status(200).json({ debts, total });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post(`${api}/debts`, async (req: Request, res: Response) => {
+    try {
+      const debtData = insertDebtSchema.parse(req.body);
+      const debt = await storage.createDebt(debtData);
+      res.status(201).json(debt);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/debts/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const debt = await storage.getDebtById(id);
+      
+      if (!debt) {
+        return res.status(404).json({ message: "Debt not found" });
+      }
+      
+      res.status(200).json(debt);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/debts/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const debtData = req.body;
+      
+      // Convert date string to Date object if present
+      if (debtData.dueDate && typeof debtData.dueDate === 'string') {
+        debtData.dueDate = new Date(debtData.dueDate);
+      }
+      
+      const updatedDebt = await storage.updateDebt(id, debtData);
+      
+      if (!updatedDebt) {
+        return res.status(404).json({ message: "Debt not found" });
+      }
+      
+      res.status(200).json(updatedDebt);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete(`${api}/debts/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteDebt(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Debt not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
 
   // Bills routes
   app.get(`${api}/bills`, async (req: Request, res: Response) => {

@@ -59,15 +59,41 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get all debts with date filtering
-  const { data: debts, isLoading } = useQuery<Debt[]>({
+  // Get "You Owe" debts 
+  const { data: youOweData, isLoading: isLoadingYouOwe } = useQuery<{debts: Debt[], total: number}>({
+    queryKey: ['/api/debts/owed-by-user', userId, selectedMonth, selectedYear],
+    queryFn: async () => {
+      // For JavaScript, months are 0-based (0 = January, 11 = December)
+      // But the API expects 1-based months, so we add 1 to selectedMonth
+      const jsMonth = selectedMonth + 1;
+      const res = await fetch(`/api/debts/owed-by-user?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
+      if (!res.ok) throw new Error('Failed to fetch debts you owe');
+      return res.json();
+    }
+  });
+  
+  // Get "Owed to You" debts
+  const { data: owedToYouData, isLoading: isLoadingOwedToYou } = useQuery<{debts: Debt[], total: number}>({
+    queryKey: ['/api/debts/owed-to-user', userId, selectedMonth, selectedYear],
+    queryFn: async () => {
+      // For JavaScript, months are 0-based (0 = January, 11 = December)
+      // But the API expects 1-based months, so we add 1 to selectedMonth
+      const jsMonth = selectedMonth + 1;
+      const res = await fetch(`/api/debts/owed-to-user?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
+      if (!res.ok) throw new Error('Failed to fetch debts owed to you');
+      return res.json();
+    }
+  });
+  
+  // Combined data for overall debt list
+  const { data: allDebts, isLoading } = useQuery<Debt[]>({
     queryKey: ['/api/debts', userId, selectedMonth, selectedYear],
     queryFn: async () => {
       // For JavaScript, months are 0-based (0 = January, 11 = December)
       // But the API expects 1-based months, so we add 1 to selectedMonth
       const jsMonth = selectedMonth + 1;
       const res = await fetch(`/api/debts?userId=${userId}&month=${jsMonth}&year=${selectedYear}`);
-      if (!res.ok) throw new Error('Failed to fetch debts');
+      if (!res.ok) throw new Error('Failed to fetch all debts');
       return res.json();
     }
   });
