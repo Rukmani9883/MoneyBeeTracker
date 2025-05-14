@@ -355,8 +355,10 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
                 <div className="pt-4 border-t border-[#2D2D2D]">
                   <div className="text-[#CCCCCC] text-sm mb-2">Savings Status</div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center" style={{ color: savingStatus.color }}>
-                      {savingStatus.icon}
+                    <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center">
+                      <span style={{ color: savingStatus.color }}>
+                        {savingStatus.icon}
+                      </span>
                     </div>
                     <div>
                       <div className="text-white font-medium">{savingStatus.text}</div>
@@ -374,8 +376,12 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
                   className="w-full bg-[#2D2D2D] hover:bg-[#3D3D3D] text-white"
                   onClick={() => setIsSettingGoal(true)}
                 >
-                  <Target className="h-4 w-4 mr-2 text-white" />
-                  Update Savings Goal
+                  <span className="flex items-center justify-center">
+                    <span className="text-white">
+                      <Target className="h-4 w-4 mr-2" />
+                    </span>
+                    <span>Update Savings Goal</span>
+                  </span>
                 </Button>
               </div>
             </CardContent>
@@ -392,11 +398,13 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center text-[#FFD700]">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                  </svg>
+                <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center">
+                  <span className="text-[#FFD700]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                  </span>
                 </div>
                 <h3 className="text-white font-medium">50/30/20 Rule</h3>
                 <p className="text-[#CCCCCC] text-sm">
@@ -405,11 +413,13 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center text-[#FFD700]">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
-                    <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
-                  </svg>
+                <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center">
+                  <span className="text-[#FFD700]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                      <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+                    </svg>
+                  </span>
                 </div>
                 <h3 className="text-white font-medium">Automate Savings</h3>
                 <p className="text-[#CCCCCC] text-sm">
@@ -418,13 +428,15 @@ const SavingsPage = ({ userId }: SavingsPageProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center text-[#FFD700]">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                  </svg>
+                <div className="w-10 h-10 rounded-full bg-[#2D2D2D] flex items-center justify-center">
+                  <span className="text-[#FFD700]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                      <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                      <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                    </svg>
+                  </span>
                 </div>
                 <h3 className="text-white font-medium">No-Spend Days</h3>
                 <p className="text-[#CCCCCC] text-sm">
