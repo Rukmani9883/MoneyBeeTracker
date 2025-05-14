@@ -34,12 +34,12 @@ const SummaryCard = ({ title, amount, subtitle, icon, iconColor, linkTo }: Summa
 
   return linkTo ? (
     <Link href={linkTo}>
-      <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg cursor-pointer transform transition-transform hover:scale-[1.02] hover:shadow-xl">
+      <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg cursor-pointer transform transition-transform hover:scale-[1.02] hover:shadow-xl h-32 flex flex-col justify-between">
         {content}
       </div>
     </Link>
   ) : (
-    <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg">
+    <div className="bg-[#1E1E1E] rounded-xl p-4 shadow-lg h-32 flex flex-col justify-between">
       {content}
     </div>
   );
