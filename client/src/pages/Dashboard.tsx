@@ -120,7 +120,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
         </div>
         
         {/* Financial Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-6">
           <SummaryCard
             title="Total Income"
             amount={summary?.totalIncome || 0}
@@ -142,7 +142,7 @@ const Dashboard = ({ userId }: DashboardProps) => {
             amount={summary?.savings || 0}
             subtitle={summary?.savings ? 
               `${Math.round((summary.savings / (summary.totalIncome || 1)) * 100)}% of income` :
-              "No savings yet"}
+              ""}
             icon={<InvestmentIcon color="text-[#4CAF50]" />}
             iconColor=""
             linkTo="/savings"
