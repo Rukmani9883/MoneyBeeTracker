@@ -87,11 +87,34 @@ const BillsPage = ({ userId }: BillsPageProps) => {
   const { data: upcomingBills } = useQuery<Bill[]>({
     queryKey: ['/api/bills/upcoming', userId],
     queryFn: async () => {
-      const res = await fetch(`/api/bills/upcoming?userId=${userId}&daysAhead=30`);
-      if (!res.ok) throw new Error('Failed to fetch upcoming bills');
-      return res.json();
+      try {
+        const res = await fetch(`/api/bills/upcoming?userId=${userId}&daysAhead=30`);
+        if (!res.ok) {
+          console.error(`Error fetching upcoming bills: ${res.status} ${res.statusText}`);
+          return [];
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Failed to fetch upcoming bills:', error);
+        return [];
+      }
     }
   });
+  
+  // Calculate total upcoming bills amount
+  const totalUpcomingAmount = upcomingBills?.reduce((total, bill) => {
+    if (!bill.isPaid) {
+      return total + bill.amount;
+    }
+    return total;
+  }, 0) || 0;
+  
+  // Calculate total past due bills amount
+  const totalPastDueAmount = bills?.filter(bill => {
+    if (bill.isPaid) return false;
+    const dueDate = new Date(bill.dueDate);
+    return dueDate < new Date();
+  }).reduce((total, bill) => total + bill.amount, 0) || 0;
 
   // Delete bill mutation
   const deleteBillMutation = useMutation({
@@ -200,11 +223,7 @@ const BillsPage = ({ userId }: BillsPageProps) => {
 
   const filteredBills = getFilteredBills();
 
-  // Calculate total upcoming bills amount
-  // Calculate total upcoming bills amount (only future bills, not past due)
-  const totalUpcomingAmount = upcomingBills
-    ?.filter(bill => differenceInDays(new Date(bill.dueDate), new Date()) >= 0)
-    .reduce((sum, bill) => sum + bill.amount, 0) || 0;
+  // No duplicate declaration needed as totalUpcomingAmount is already defined above
 
   // Data for bar chart (by category)
   const getChartData = () => {
@@ -296,14 +315,13 @@ const BillsPage = ({ userId }: BillsPageProps) => {
                 </div>
               </div>
               <div className="font-mono font-medium text-xl text-white">
-                {formatCurrency(
-                  upcomingBills?.filter(bill => differenceInDays(new Date(bill.dueDate), new Date()) < 0)
-                    .reduce((sum, bill) => sum + bill.amount, 0) || 0
-                )}
+                {formatCurrency(totalPastDueAmount)}
               </div>
               <div className="mt-2 text-xs flex items-center text-[#F44336]">
                 <span>
-                  {upcomingBills?.filter(bill => differenceInDays(new Date(bill.dueDate), new Date()) < 0).length || 0} overdue bills
+                  {bills?.filter(bill => 
+                    !bill.isPaid && new Date(bill.dueDate) < new Date()
+                  ).length || 0} overdue bills
                 </span>
               </div>
             </CardContent>
