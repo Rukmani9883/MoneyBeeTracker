@@ -1310,6 +1310,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get recent transactions
       const recentTransactions = await storage.getRecentTransactions(userId, 5);
       
+      // Get total debt information
+      const debtsYouOwe = await storage.getOwedByUserDebts(userId);
+      const debtsOwedToYou = await storage.getOwedToUserDebts(userId);
+      
+      // Total debt is the sum of all debts you owe
+      const totalDebt = debtsYouOwe.reduce((total, debt) => total + debt.remainingAmount, 0);
+      
+      console.log(`Total debt: ${totalDebt} from ${debtsYouOwe.length} debts`);
+      
       // Auto-update the savings record for this month
       await autoUpdateMonthlySavings(userId, month, year, savings);
       
@@ -1321,6 +1330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         savings,
         totalVault,
         totalUpcomingBills,
+        totalDebt,
         upcomingBills,
         recentTransactions,
         vaultGoals

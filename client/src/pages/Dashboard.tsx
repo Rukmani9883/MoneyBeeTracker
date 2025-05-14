@@ -29,6 +29,7 @@ interface DashboardSummary {
   totalVault: number;
   totalUpcomingBills: number;
   totalBills: number;
+  totalDebt: number;
   upcomingBills: any[];
   recentTransactions: any[];
   vaultGoals?: any[];
@@ -161,6 +162,20 @@ const Dashboard = ({ userId }: DashboardProps) => {
             icon={<UtilitiesIcon color="text-[#2196F3]" />}
             iconColor=""
             linkTo="/bills"
+          />
+          
+          <SummaryCard
+            title="Total Debt"
+            amount={summary?.totalDebt || 0}
+            icon={
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#F44336]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18"></path>
+                <path d="M6 6l12 12"></path>
+                <path d="M12 3v18"></path>
+              </svg>
+            }
+            iconColor=""
+            linkTo="/debt"
           />
         </div>
 
