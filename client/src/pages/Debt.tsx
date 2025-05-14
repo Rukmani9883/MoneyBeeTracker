@@ -162,7 +162,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
           <Card className="bg-[#1E1E1E] border-[#2D2D2D]">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-3">
-                <div className="text-[#CCCCCC] font-medium text-sm">Total You Owe</div>
+                <div className="text-[#CCCCCC] font-medium text-sm">Total I Owe</div>
                 <div className="text-[#F44336]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
@@ -245,7 +245,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
                     value="you-owe" 
                     className="data-[state=active]:bg-[#FFD700] data-[state=active]:text-[#121212]"
                   >
-                    Debts You Owe
+                    Debts I Owe
                   </TabsTrigger>
                   <TabsTrigger 
                     value="owed-to-you" 
