@@ -4,11 +4,10 @@ import {
   expenses, Expense, InsertExpense,
   savings, Saving, InsertSaving,
   vaultGoals, VaultGoal, InsertVaultGoal,
+  debts, Debt, InsertDebt,
   bills, Bill, InsertBill,
   transactions, Transaction, InsertTransaction
 } from "@shared/schema";
-
-// Debt module has been removed
 import { eq, and, gte, lte, desc, asc, count } from "drizzle-orm";
 import { db } from "./db";
 
@@ -54,7 +53,14 @@ export interface IStorage {
   addFundsToGoal(id: number, amount: number): Promise<VaultGoal | undefined>;
   withdrawFundsFromGoal(id: number, amount: number): Promise<VaultGoal | undefined>;
 
-  // Debt module has been removed
+  // Debts
+  getDebts(userId: number): Promise<Debt[]>;
+  getDebtById(id: number): Promise<Debt | undefined>;
+  createDebt(debt: InsertDebt): Promise<Debt>;
+  updateDebt(id: number, debt: Partial<InsertDebt>): Promise<Debt | undefined>;
+  deleteDebt(id: number): Promise<boolean>;
+  getOwedByUserDebts(userId: number): Promise<Debt[]>;
+  getOwedToUserDebts(userId: number): Promise<Debt[]>;
 
   // Bills
   getBills(userId: number): Promise<Bill[]>;
@@ -84,6 +90,7 @@ export class MemStorage implements IStorage {
   private expenses: Map<number, Expense>;
   private savings: Map<number, Saving>;
   private vaultGoals: Map<number, VaultGoal>;
+  private debts: Map<number, Debt>;
   private bills: Map<number, Bill>;
   private transactions: Map<number, Transaction>;
   
@@ -92,6 +99,7 @@ export class MemStorage implements IStorage {
   private expenseId: number;
   private savingId: number;
   private vaultGoalId: number;
+  private debtId: number;
   private billId: number;
   private transactionId: number;
 
@@ -101,6 +109,7 @@ export class MemStorage implements IStorage {
     this.expenses = new Map();
     this.savings = new Map();
     this.vaultGoals = new Map();
+    this.debts = new Map();
     this.bills = new Map();
     this.transactions = new Map();
     
@@ -109,6 +118,7 @@ export class MemStorage implements IStorage {
     this.expenseId = 1;
     this.savingId = 1;
     this.vaultGoalId = 1;
+    this.debtId = 1;
     this.billId = 1;
     this.transactionId = 1;
 
@@ -444,7 +454,76 @@ export class MemStorage implements IStorage {
     return updatedGoal;
   }
 
-  // Debt module has been removed
+  // Debt Methods
+  async getDebts(userId: number): Promise<Debt[]> {
+    return Array.from(this.debts.values())
+      .filter(debt => debt.userId === userId)
+      .sort((a, b) => {
+        // Sort by due date if available
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        } else if (a.dueDate) {
+          return -1;
+        } else if (b.dueDate) {
+          return 1;
+        }
+        // Otherwise sort by name
+        return a.name.localeCompare(b.name);
+      });
+  }
+
+  async getDebtById(id: number): Promise<Debt | undefined> {
+    return this.debts.get(id);
+  }
+
+  async createDebt(insertDebt: InsertDebt): Promise<Debt> {
+    const id = this.debtId++;
+    const debt: Debt = { ...insertDebt, id };
+    this.debts.set(id, debt);
+    
+    // Create a transaction record for this debt
+    await this.createTransaction({
+      userId: debt.userId,
+      type: debt.isOwedByUser ? "debt" : "credit",
+      amount: debt.totalAmount,
+      description: debt.name,
+      date: new Date(),
+      category: debt.category || null,
+      sourceId: id,
+      destinationId: null
+    });
+    
+    return debt;
+  }
+
+  async updateDebt(id: number, debtUpdate: Partial<InsertDebt>): Promise<Debt | undefined> {
+    const existingDebt = this.debts.get(id);
+    if (!existingDebt) return undefined;
+    
+    const updatedDebt = { ...existingDebt, ...debtUpdate };
+    this.debts.set(id, updatedDebt);
+    return updatedDebt;
+  }
+
+  async deleteDebt(id: number): Promise<boolean> {
+    const debt = this.debts.get(id);
+    if (!debt) return false;
+
+    // Delete all related transactions
+    await this.deleteRelatedTransactions(debt.userId, debt.isOwedByUser ? "debt" : "credit", debt.name, id);
+    
+    return this.debts.delete(id);
+  }
+
+  async getOwedByUserDebts(userId: number): Promise<Debt[]> {
+    return Array.from(this.debts.values())
+      .filter(debt => debt.userId === userId && debt.isOwedByUser === true);
+  }
+
+  async getOwedToUserDebts(userId: number): Promise<Debt[]> {
+    return Array.from(this.debts.values())
+      .filter(debt => debt.userId === userId && debt.isOwedByUser === false);
+  }
 
   // Bill methods
   async getBills(userId: number): Promise<Bill[]> {
