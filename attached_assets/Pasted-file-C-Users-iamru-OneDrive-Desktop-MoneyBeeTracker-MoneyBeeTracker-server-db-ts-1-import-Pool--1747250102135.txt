@@ -1,0 +1,25 @@
+file:///C:/Users/iamru/OneDrive/Desktop/MoneyBeeTracker/MoneyBeeTracker/server/db.ts:1
+import{Pool,neonConfig}from"@neondatabase/serverless";import{drizzle}from"drizzle-orm/neon-serverless";import ws from"ws";import*as schema from"@shared/schema";neonConfig.webSocketConstructor=ws;if(!process.env.DATABASE_URL){throw new Error("DATABASE_URL must be set. Did you forget to provision a database?")}const pool=new Pool({connectionString:process.env.DATABASE_URL});const db=drizzle({client:pool,schema});export{db,pool};
+                                                                                                                           
+                                                                                                            ^
+
+Error: DATABASE_URL must be set. Did you forget to provision a database?
+    at <anonymous> (c:\Users\iamru\OneDrive\Desktop\MoneyBeeTracker\MoneyBeeTracker\server\db.ts:9:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:218:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:329:24)
+    at async loadESM (node:internal/process/esm_loader:28:7)
+    at async handleMainPromise (node:internal/modules/run_main:113:12)
+
+Node.js v20.11.1
+PS C:\Users\iamru\OneDrive\Desktop\MoneyBeeTracker\MoneyBeeTracker> npx tsx server/index.ts
+file:///C:/Users/iamru/OneDrive/Desktop/MoneyBeeTracker/MoneyBeeTracker/server/db.ts:1
+import{Pool,neonConfig}from"@neondatabase/serverless";import{drizzle}from"drizzle-orm/neon-serverless";import ws from"ws";import*as schema from"@shared/schema";neonConfig.webSocketConstructor=ws;if(!process.env.DATABASE_URL){throw new Error("DATABASE_URL must be set. Did you forget to provision a database?")}const pool=new Pool({connectionString:process.env.DATABASE_URL});const db=drizzle({client:pool,schema});export{db,pool};
+                                                                                                                           
+                                                                                                            ^
+
+Error: DATABASE_URL must be set. Did you forget to provision a database?
+    at <anonymous> (c:\Users\iamru\OneDrive\Desktop\MoneyBeeTracker\MoneyBeeTracker\server\db.ts:9:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:218:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:329:24)
+    at async loadESM (node:internal/process/esm_loader:28:7)
+    at async handleMainPromise (node:internal/modules/run_main:113:12)
