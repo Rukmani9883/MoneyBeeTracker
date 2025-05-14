@@ -1125,31 +1125,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const daysAhead = parseInt(req.query.daysAhead as string) || 30;
       
-      // Default to current month/year if values are missing or invalid
-      let month = currentMonth;
-      let year = currentYear;
-      
-      if (req.query.month) {
-        const parsedMonth = parseInt(req.query.month as string);
-        if (!isNaN(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
-          month = parsedMonth;
-        }
-      }
-      
-      if (req.query.year) {
-        const parsedYear = parseInt(req.query.year as string);
-        if (!isNaN(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100) {
-          year = parsedYear;
-        }
-      }
-      
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
       // Safely handle errors in case the function fails
       try {
-        let bills = await storage.getBillsForMonth(userId, month, year);
+        let bills = await storage.getUpcomingBills(userId, daysAhead);
         res.status(200).json(bills);
       } catch (billError: any) {
         console.error("Error fetching upcoming bills:", billError);

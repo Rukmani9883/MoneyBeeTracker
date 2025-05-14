@@ -165,7 +165,20 @@ const BillsPage = ({ userId }: BillsPageProps) => {
     if (!bills) return [];
     
     if (activeTab === "upcoming") {
-      return upcomingBills || [];
+      // Make sure we're using the same upcomingBills in both places
+      if (upcomingBills && upcomingBills.length > 0) {
+        return upcomingBills;
+      } else {
+        // Fallback: Find upcoming bills from the main bills array
+        const now = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(now.getDate() + 30); // 30 days ahead
+        
+        return bills.filter(bill => {
+          const dueDate = new Date(bill.dueDate);
+          return !bill.isPaid && dueDate >= now && dueDate <= futureDate;
+        });
+      }
     } else if (activeTab === "paid") {
       return bills.filter(bill => bill.isPaid);
     } else {
