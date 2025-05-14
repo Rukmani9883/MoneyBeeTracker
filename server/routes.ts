@@ -1119,56 +1119,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.session && req.session.userId) {
         userId = req.session.userId;
       } else if (req.query.userId) {
-        userId = parseInt(req.query.userId as string);
-        if (isNaN(userId)) {
-          return res.status(400).json({ message: "Invalid user ID format" });
+        const parsedId = parseInt(req.query.userId as string);
+        if (isNaN(parsedId)) {
+          console.error("Invalid userId in request:", req.query.userId);
+          return res.status(200).json([]); // Return empty array instead of error
         }
+        userId = parsedId;
       } else {
-        return res.status(400).json({ message: "User ID is required" });
+        console.error("No userId provided");
+        return res.status(200).json([]); // Return empty array instead of error
       }
       
       // Default to 30 days ahead if not specified
-      const daysAhead = req.query.daysAhead ? parseInt(req.query.daysAhead as string) : 30;
-      
-      console.log(`[DEBUG] Upcoming bills request: userId=${userId}, daysAhead=${daysAhead}`);
-      
-      try {
-        // Get all bills for the user
-        const allBills = await storage.getBills(userId);
-        console.log(`[DEBUG] Total bills found for user ${userId}: ${allBills.length}`);
-        
-        // Calculate future date
-        const futureDate = new Date();
-        futureDate.setDate(now.getDate() + daysAhead);
-        
-        // Filter upcoming bills manually
-        const upcomingBills = allBills.filter(bill => {
-          if (!bill.dueDate) return false;
-          
-          const dueDate = new Date(bill.dueDate);
-          const isUpcoming = !bill.isPaid && dueDate <= futureDate;
-          return isUpcoming;
-        });
-        
-        console.log(`[DEBUG] Upcoming bills count: ${upcomingBills.length}`);
-        
-        // Sort by due date
-        upcomingBills.sort((a, b) => {
-          const dateA = new Date(a.dueDate).getTime();
-          const dateB = new Date(b.dueDate).getTime();
-          return dateA - dateB;
-        });
-        
-        // Return the filtered bills
-        return res.status(200).json(upcomingBills);
-      } catch (billError: any) {
-        console.error("Error processing bills:", billError);
-        // Return an empty array instead of an error
-        return res.status(200).json([]);
+      let daysAhead = 30;
+      if (req.query.daysAhead) {
+        const parsedDays = parseInt(req.query.daysAhead as string);
+        if (!isNaN(parsedDays)) {
+          daysAhead = parsedDays;
+        }
       }
-    } catch (error: any) {
+      
+      console.log(`Fetching upcoming bills for user ${userId} for next ${daysAhead} days`);
+      
+      // Get all bills for the user
+      const allBills = await storage.getBills(userId);
+      console.log(`Found ${allBills.length} total bills for user ${userId}`);
+      
+      // Calculate future date
+      const futureDate = new Date();
+      futureDate.setDate(now.getDate() + daysAhead);
+      
+      // Filter upcoming bills (not paid and due date in the future)
+      const upcomingBills = allBills.filter(bill => {
+        if (!bill.dueDate) return false;
+        
+        const dueDate = new Date(bill.dueDate);
+        return !bill.isPaid && dueDate >= now && dueDate <= futureDate;
+      });
+      
+      console.log(`Filtered to ${upcomingBills.length} upcoming bills`);
+      
+      // Sort by due date
+      upcomingBills.sort((a, b) => {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
+      
+      return res.status(200).json(upcomingBills);
+    } catch (error) {
       console.error("Error in upcoming bills endpoint:", error);
-      return res.status(400).json({ message: "Error fetching upcoming bills" });
+      return res.status(200).json([]); // Return empty array instead of error
     }
   });
 
@@ -1331,18 +1330,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       });
       
-      // Filter for past due bills (not paid, due date in past)
-      const pastDueBills = allBills.filter(bill => {
-        if (!bill.dueDate || bill.isPaid) return false;
-        const dueDate = new Date(bill.dueDate);
-        return dueDate < now;
-      }).sort((a, b) => {
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      });
+      // Calculate total upcoming bills
+      const totalUpcomingBills = upcomingBills.reduce((total, bill) => {
+        console.log(`Upcoming bill: ${bill.name}, amount: ${bill.amount}`);
+        return total + bill.amount;
+      }, 0);
       
-      // Calculate total upcoming and past due bills
-      const totalUpcomingBills = upcomingBills.reduce((total, bill) => total + bill.amount, 0);
-      const totalPastDueBills = pastDueBills.reduce((total, bill) => total + bill.amount, 0);
+      console.log(`Total upcoming bills amount: ${totalUpcomingBills} from ${upcomingBills.length} bills`);
       
       // Get recent transactions
       const recentTransactions = await storage.getRecentTransactions(userId, 5);
@@ -1361,9 +1355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalDebts: totalDebtsOwed,
         totalDebtsOwedToUser,
         totalUpcomingBills,
-        totalPastDueBills,
         upcomingBills,
-        pastDueBills,
         recentTransactions,
         vaultGoals
       });

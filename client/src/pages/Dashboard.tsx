@@ -174,17 +174,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
             iconColor=""
             linkTo="/bills"
           />
-          
-          {summary?.totalPastDueBills > 0 && (
-            <SummaryCard
-              title="Past Due Bills"
-              amount={summary?.totalPastDueBills || 0}
-              icon={<UtilitiesIcon color="text-[#F44336]" />}
-              iconColor="warning"
-              linkTo="/bills"
-              subtitle="Overdue payments"
-            />
-          )}
         </div>
 
         {/* Expense Chart & Vault */}
