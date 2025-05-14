@@ -204,19 +204,34 @@ export class MemStorage implements IStorage {
   private async deleteRelatedTransactions(
     userId: number, 
     type: string, 
-    description: string
+    description: string,
+    sourceId?: number
   ): Promise<void> {
     const transactionsToRemove: number[] = [];
     
     this.transactions.forEach((transaction, transactionId) => {
+      // Case 1: Match by sourceId if provided (most precise)
+      if (sourceId && transaction.sourceId === sourceId) {
+        transactionsToRemove.push(transactionId);
+        return;
+      }
+      
+      // Case 2: Match by user, type and description containing the specific term
       if (
         transaction.userId === userId &&
         transaction.type === type &&
-        transaction.description === description
+        (
+          transaction.description === description ||
+          (transaction.description && description && transaction.description.includes(description)) ||
+          (description && transaction.description && description.includes(transaction.description))
+        )
       ) {
         transactionsToRemove.push(transactionId);
+        return;
       }
     });
+    
+    console.log(`Removing ${transactionsToRemove.length} related transactions for ${description}`);
     
     for (const transactionId of transactionsToRemove) {
       this.transactions.delete(transactionId);
@@ -517,6 +532,36 @@ export class MemStorage implements IStorage {
     const existingBill = this.bills.get(id);
     if (!existingBill) return undefined;
     
+    const isNameChanged = billUpdate.name && billUpdate.name !== existingBill.name;
+    const isAmountChanged = billUpdate.amount && billUpdate.amount !== existingBill.amount;
+    
+    // If name changed, we need to update related transactions
+    if (isNameChanged || isAmountChanged) {
+      try {
+        // First, find and delete any related transactions for the old bill
+        await this.deleteRelatedTransactions(existingBill.userId, "bill", existingBill.name);
+        
+        // Then create a new transaction for the updated bill if it's marked as paid
+        if (billUpdate.isPaid || existingBill.isPaid) {
+          const transactionAmount = billUpdate.amount || existingBill.amount;
+          const transactionName = billUpdate.name || existingBill.name;
+          
+          await this.createTransaction({
+            userId: existingBill.userId,
+            date: new Date(),
+            amount: transactionAmount,
+            type: "expense",
+            category: "Bills",
+            description: `Bill payment: ${transactionName}`,
+            sourceId: id,
+            destinationId: null
+          });
+        }
+      } catch (err) {
+        console.error("Error updating bill transactions:", err);
+      }
+    }
+    
     const updatedBill = { ...existingBill, ...billUpdate };
     this.bills.set(id, updatedBill);
     return updatedBill;
@@ -526,8 +571,12 @@ export class MemStorage implements IStorage {
     const bill = this.bills.get(id);
     if (!bill) return false;
 
-    // Delete all related transactions
-    await this.deleteRelatedTransactions(bill.userId, "expense", bill.name);
+    // Delete all related transactions - use both sourceId and name for completeness
+    await this.deleteRelatedTransactions(bill.userId, "expense", `Bill payment: ${bill.name}`, id);
+    await this.deleteRelatedTransactions(bill.userId, "bill", bill.name, id);
+    
+    // Additional logging for troubleshooting
+    console.log(`Deleting bill: ${id} - ${bill.name}`);
     
     return this.bills.delete(id);
   }
@@ -552,32 +601,37 @@ export class MemStorage implements IStorage {
     const bill = this.bills.get(id);
     if (!bill) return undefined;
     
+    // If already paid, don't create duplicate transactions
+    if (bill.isPaid) {
+      return bill;
+    }
+    
     const updatedBill = { ...bill, isPaid: true };
     this.bills.set(id, updatedBill);
     
-    // Create an expense for this bill payment
-    await this.createExpense({
-      userId: bill.userId,
-      name: `Payment for ${bill.name}`,
-      amount: bill.amount,
-      category: bill.category,
-      date: new Date(),
-      recurring: false,
-      frequency: null,
-      notes: `Automatic expense created for bill payment`
+    // First check if a transaction already exists for this bill
+    let existingTransaction = false;
+    this.transactions.forEach((transaction) => {
+      if (transaction.sourceId === id) {
+        existingTransaction = true;
+      }
     });
     
-    // Create a transaction record for the bill payment
-    await this.createTransaction({
-      userId: bill.userId,
-      date: new Date(),
-      type: "expense",
-      amount: bill.amount,
-      category: bill.category,
-      description: `Bill payment: ${bill.name}`,
-      sourceId: null,
-      destinationId: null
-    });
+    if (!existingTransaction) {
+      console.log(`Creating transaction for bill payment: ${bill.name} (id: ${id})`);
+      
+      // Create a transaction record for the bill payment with the bill ID as source
+      await this.createTransaction({
+        userId: bill.userId,
+        date: new Date(),
+        type: "expense",
+        amount: bill.amount,
+        category: bill.category || "Bills",
+        description: `Bill payment: ${bill.name}`,
+        sourceId: id,  // Use bill ID as source for future reference
+        destinationId: null
+      });
+    }
     
     return updatedBill;
   }

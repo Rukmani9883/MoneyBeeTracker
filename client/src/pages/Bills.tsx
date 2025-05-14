@@ -201,7 +201,10 @@ const BillsPage = ({ userId }: BillsPageProps) => {
   const filteredBills = getFilteredBills();
 
   // Calculate total upcoming bills amount
-  const totalUpcomingAmount = upcomingBills?.reduce((sum, bill) => sum + bill.amount, 0) || 0;
+  // Calculate total upcoming bills amount (only future bills, not past due)
+  const totalUpcomingAmount = upcomingBills
+    ?.filter(bill => differenceInDays(new Date(bill.dueDate), new Date()) >= 0)
+    .reduce((sum, bill) => sum + bill.amount, 0) || 0;
 
   // Data for bar chart (by category)
   const getChartData = () => {

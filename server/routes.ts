@@ -1115,24 +1115,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1; // 1-indexed month
       
-      // Parse parameters with fallbacks
-      let userId = NaN;
-      try {
+      // Parse parameters with fallbacks - use session userId if available
+      let userId: number;
+      
+      if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      } else {
         userId = parseInt(req.query.userId as string);
-      } catch (e) {
-        // Will be caught by isNaN check
+        if (isNaN(userId)) {
+          console.error("Invalid userId in request:", req.query.userId);
+          return res.status(400).json({ message: "Invalid user ID" });
+        }
       }
       
       const daysAhead = parseInt(req.query.daysAhead as string) || 30;
       
-      if (isNaN(userId)) {
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
-      
-      // Safely handle errors in case the function fails
       try {
-        let bills = await storage.getUpcomingBills(userId, daysAhead);
-        res.status(200).json(bills);
+        console.log(`Fetching upcoming bills for user ${userId} with daysAhead=${daysAhead}`);
+        
+        // Get all bills for the user first
+        const allBills = await storage.getBills(userId);
+        
+        // Filter them manually to avoid issues in the getUpcomingBills method
+        const futureDate = new Date();
+        futureDate.setDate(now.getDate() + daysAhead);
+        
+        const upcomingBills = allBills.filter(bill => {
+          const dueDate = new Date(bill.dueDate);
+          return !bill.isPaid && dueDate >= now && dueDate <= futureDate;
+        }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+        
+        res.status(200).json(upcomingBills);
       } catch (billError: any) {
         console.error("Error fetching upcoming bills:", billError);
         // Return an empty array instead of an error
@@ -1140,7 +1153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       console.error("Error in upcoming bills endpoint:", error);
-      res.status(400).json({ message: "Error fetching upcoming bills" });
+      res.status(400).json({ message: error.message || "Error fetching upcoming bills" });
     }
   });
 
