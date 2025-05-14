@@ -118,23 +118,45 @@ const RecentTransactions = ({
     );
   }
 
-  // Prepare transactions for display by removing duplicates and sorting
-  const displayTransactions = transactions
-    ? [...transactions]
-        // Filter out duplicate transactions by source
-        .filter((transaction, index, self) => {
-          // Keep the first occurrence of each sourceId
-          if (!transaction.sourceId) return true;
-          return index === self.findIndex(t => 
-            t.sourceId === transaction.sourceId && 
-            t.type === transaction.type
-          );
-        })
-        // Sort by date, newest first
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        // Apply the limit
-        .slice(0, limit)
-    : [];
+  // Process and deduplicate transactions for display
+  const processTransactions = (): Transaction[] => {
+    if (!transactions || transactions.length === 0) return [];
+    
+    console.log('Original transactions:', transactions);
+    
+    // Group transactions by description and type (ignoring sourceId differences)
+    const transactionGroups = new Map<string, Transaction>();
+    
+    transactions.forEach(transaction => {
+      // Create a unique signature for this transaction that ignores sourceId
+      const signature = `${transaction.type}-${transaction.description}-${transaction.amount}-${transaction.date}`;
+      
+      // Always prefer transactions with sourceId if we have a choice
+      if (!transactionGroups.has(signature) || 
+          (transaction.sourceId && !transactionGroups.get(signature)?.sourceId)) {
+        transactionGroups.set(signature, transaction);
+      }
+    });
+    
+    // Convert the map values to an array
+    const uniqueTransactions: Transaction[] = Array.from(transactionGroups.values());
+    
+    // Log filtered counts for debugging
+    const incomeCount = uniqueTransactions.filter(t => t.type === 'income').length;
+    const expenseCount = uniqueTransactions.filter(t => t.type === 'expense').length;
+    console.log(`After filtering: ${incomeCount} income transactions and ${expenseCount} expense transactions`);
+    
+    // Sort by date and apply limit
+    const result = uniqueTransactions
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit);
+    
+    console.log('Final transactions to display:', result);
+    return result;
+  };
+  
+  // Get the deduplicated, sorted transactions list
+  const displayTransactions = processTransactions();
 
   return (
     <div className="bg-[#1E1E1E] rounded-xl p-5 shadow-lg">
