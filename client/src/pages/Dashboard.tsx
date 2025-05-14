@@ -166,12 +166,23 @@ const Dashboard = ({ userId }: DashboardProps) => {
           />
           
           <SummaryCard
-            title="EMI & Bills"
-            amount={summary?.totalBills || 0}
+            title="Upcoming Bills"
+            amount={summary?.totalUpcomingBills || 0}
             icon={<UtilitiesIcon color="text-[#2196F3]" />}
             iconColor=""
             linkTo="/bills"
           />
+          
+          {summary?.totalPastDueBills > 0 && (
+            <SummaryCard
+              title="Past Due Bills"
+              amount={summary?.totalPastDueBills || 0}
+              icon={<UtilitiesIcon color="text-[#F44336]" />}
+              iconColor="warning"
+              linkTo="/bills"
+              subtitle="Overdue payments"
+            />
+          )}
         </div>
 
         {/* Expense Chart & Vault */}
