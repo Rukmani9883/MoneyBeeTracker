@@ -317,7 +317,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
                     </div>
                   ) : (
                     <div className="text-center py-10 text-[#CCCCCC]">
-                      <p className="text-lg mb-2">No debts found that you owe</p>
+                      <p className="text-lg mb-2">No debts found that I owe</p>
                       <p className="text-sm text-[#999999] mb-4">Start adding your debts to track them</p>
                       <Button 
                         className="bg-[#FFD700] text-[#121212] hover:bg-[#E6C200]"
@@ -413,8 +413,8 @@ const DebtPage = ({ userId }: DebtPageProps) => {
               <CardTitle className="text-white text-xl font-semibold">Debt Breakdown</CardTitle>
               <CardDescription className="text-[#CCCCCC]">
                 {activeTab === "you-owe" 
-                  ? "Categorization of your debts" 
-                  : "Breakdown of money owed to you"}
+                  ? "Categorization of my debts" 
+                  : "Breakdown of money owed to me"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -481,7 +481,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
           <CardHeader>
             <CardTitle className="text-white text-xl font-semibold">Debt Management Tips</CardTitle>
             <CardDescription className="text-[#CCCCCC]">
-              Strategies to manage and reduce your debt effectively
+              Strategies to manage and reduce debt effectively
             </CardDescription>
           </CardHeader>
           <CardContent>
