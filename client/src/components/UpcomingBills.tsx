@@ -26,11 +26,23 @@ const UpcomingBills = ({ userId, limit = 4, month, year }: UpcomingBillsProps) =
   const { data: bills, isLoading } = useQuery<Bill[]>({
     queryKey: ['/api/bills/upcoming', { userId, month: apiMonth, year: selectedYear }],
     queryFn: async () => {
-      // Include month and year parameters for filtering
-      const url = `/api/bills/upcoming?userId=${userId}&month=${apiMonth}&year=${selectedYear}&daysAhead=30`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch bills');
-      return res.json();
+      // No need to send month/year for upcoming bills endpoint - 
+      // it works based on current date and future days
+      const url = `/api/bills/upcoming?userId=${userId}&daysAhead=30`;
+      try {
+        console.log(`Fetching upcoming bills from: ${url}`);
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.error(`Error fetching upcoming bills: ${res.status} ${res.statusText}`);
+          return [];
+        }
+        const data = await res.json();
+        console.log(`Received ${data.length} upcoming bills`);
+        return data;
+      } catch (error) {
+        console.error('Failed to fetch upcoming bills:', error);
+        return [];
+      }
     }
   });
 

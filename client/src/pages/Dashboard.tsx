@@ -28,6 +28,8 @@ interface DashboardSummary {
   debtPayments: number;
   billPayments: number;
   totalVault: number;
+  totalUpcomingBills: number;
+  totalPastDueBills: number;
   totalDebts: number;
   totalDebtsOwedToUser: number;
   totalBills: number;
