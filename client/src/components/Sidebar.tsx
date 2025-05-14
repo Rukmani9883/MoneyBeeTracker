@@ -109,15 +109,6 @@ const Sidebar = ({ activePath }: SidebarProps) => {
           <span>Vault</span>
         </Link>
         
-        <Link href="/debt"
-          className={`flex items-center p-3 rounded-lg ${isActive("/debt") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
-            <path d="M22 4L12 14.01l-3-3"></path>
-          </svg>
-          <span>Debt</span>
-        </Link>
-        
         <Link href="/bills"
           className={`flex items-center p-3 rounded-lg ${isActive("/bills") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} transition-colors`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

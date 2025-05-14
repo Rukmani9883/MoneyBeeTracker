@@ -8,7 +8,6 @@ import Income from "@/pages/Income";
 import Expenses from "@/pages/Expenses";
 import Savings from "@/pages/Savings";
 import Vault from "@/pages/Vault";
-import Debt from "@/pages/Debt";
 import Bills from "@/pages/Bills";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -57,7 +56,6 @@ function App() {
               <Route path="/expenses" component={() => <ProtectedRoute component={Expenses} userId={userId} />} />
               <Route path="/savings" component={() => <ProtectedRoute component={Savings} userId={userId} />} />
               <Route path="/vault" component={() => <ProtectedRoute component={Vault} userId={userId} />} />
-              <Route path="/debt" component={() => <ProtectedRoute component={Debt} userId={userId} />} />
               <Route path="/bills" component={() => <ProtectedRoute component={Bills} userId={userId} />} />
               <Route component={NotFound} />
             </Switch>

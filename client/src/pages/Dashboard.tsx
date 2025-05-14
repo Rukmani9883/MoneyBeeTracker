@@ -25,12 +25,9 @@ interface DashboardSummary {
   totalIncome: number;
   totalExpenses: number;
   savings: number;
-  debtPayments: number;
   billPayments: number;
   totalVault: number;
   totalUpcomingBills: number;
-  totalDebts: number;
-  totalDebtsOwedToUser: number;
   totalBills: number;
   upcomingBills: any[];
   recentTransactions: any[];
@@ -156,14 +153,6 @@ const Dashboard = ({ userId }: DashboardProps) => {
             icon={<InvestmentIcon color="text-[#FFD700]" />}
             iconColor=""
             linkTo="/vault"
-          />
-          
-          <SummaryCard
-            title="Debt"
-            amount={summary?.totalDebts || 0}
-            icon={<OtherIcon color="text-[#FF9800]" />}
-            iconColor=""
-            linkTo="/debt"
           />
           
           <SummaryCard
