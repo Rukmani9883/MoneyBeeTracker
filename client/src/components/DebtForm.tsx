@@ -23,6 +23,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { addMonths, format } from "date-fns";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { notifyFinancialDataChanged } from "@/lib/eventUtils";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DebtFormProps {
   userId: number;
@@ -74,6 +75,7 @@ const DebtForm = ({
 }: DebtFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -97,7 +99,7 @@ const DebtForm = ({
       form.reset({
         userId: userId,
         name: debt.name,
-        isOwedByUser: debt.isOwedByUser,
+        isOwedByUser: debt.isOwedByUser === null ? false : debt.isOwedByUser,
         totalAmount: debt.totalAmount.toString(),
         remainingAmount: debt.remainingAmount.toString(),
         interestRate: debt.interestRate?.toString() || "",
@@ -154,6 +156,14 @@ const DebtForm = ({
           variant: "default",
         });
       }
+      
+      // Invalidate queries to refresh data immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/debts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/debts/owed-by-user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/debts/owed-to-user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions/monthly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/transactions/recent'] });
       
       // Notify all components that financial data has changed
       notifyFinancialDataChanged();

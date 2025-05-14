@@ -191,6 +191,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
   
   // Colors for the pie chart
   const COLORS = ['#F44336', '#2196F3', '#FFD700', '#FF9800', '#9C27B0', '#4CAF50'];
+  const GREEN_COLORS = ['#4CAF50', '#8BC34A', '#009688', '#2E7D32', '#00695C', '#388E3C'];
 
   return (
     <>
@@ -305,7 +306,7 @@ const DebtPage = ({ userId }: DebtPageProps) => {
                           labelLine={false}
                         >
                           {owedToYouChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={GREEN_COLORS[index % GREEN_COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip formatter={(value) => formatCurrency(value as number)} />
