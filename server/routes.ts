@@ -7,7 +7,6 @@ import {
   insertExpenseSchema,
   insertSavingsSchema,
   insertVaultGoalSchema,
-  insertDebtSchema,
   insertBillSchema,
   insertTransactionSchema
 } from "@shared/schema";
