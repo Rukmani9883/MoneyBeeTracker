@@ -53,14 +53,7 @@ export interface IStorage {
   addFundsToGoal(id: number, amount: number): Promise<VaultGoal | undefined>;
   withdrawFundsFromGoal(id: number, amount: number): Promise<VaultGoal | undefined>;
 
-  // Debts
-  getDebts(userId: number): Promise<Debt[]>;
-  getDebtById(id: number): Promise<Debt | undefined>;
-  createDebt(debt: InsertDebt): Promise<Debt>;
-  updateDebt(id: number, debt: Partial<InsertDebt>): Promise<Debt | undefined>;
-  deleteDebt(id: number): Promise<boolean>;
-  getDebtsByOwnership(userId: number, isOwedByUser: boolean): Promise<Debt[]>;
-  getTotalDebts(userId: number, isOwedByUser: boolean): Promise<number>;
+  // Debt module has been removed
 
   // Bills
   getBills(userId: number): Promise<Bill[]>;
@@ -90,7 +83,6 @@ export class MemStorage implements IStorage {
   private expenses: Map<number, Expense>;
   private savings: Map<number, Saving>;
   private vaultGoals: Map<number, VaultGoal>;
-  private debts: Map<number, Debt>;
   private bills: Map<number, Bill>;
   private transactions: Map<number, Transaction>;
   
@@ -99,7 +91,6 @@ export class MemStorage implements IStorage {
   private expenseId: number;
   private savingId: number;
   private vaultGoalId: number;
-  private debtId: number;
   private billId: number;
   private transactionId: number;
 
