@@ -1333,6 +1333,14 @@ export class DatabaseStorage implements IStorage {
     return debts.reduce((total, debt) => total + debt.remainingAmount, 0);
   }
 
+  async getOwedByUserDebts(userId: number): Promise<Debt[]> {
+    return this.getDebtsByOwnership(userId, true);
+  }
+
+  async getOwedToUserDebts(userId: number): Promise<Debt[]> {
+    return this.getDebtsByOwnership(userId, false);
+  }
+
   // Bills operations
   async getBills(userId: number): Promise<Bill[]> {
     return db.select().from(bills).where(eq(bills.userId, userId));
