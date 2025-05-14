@@ -110,7 +110,7 @@ const Sidebar = ({ activePath }: SidebarProps) => {
         </Link>
         
         <Link href="/bills"
-          className={`flex items-center p-3 rounded-lg ${isActive("/bills") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} transition-colors`}>
+          className={`flex items-center p-3 rounded-lg ${isActive("/bills") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} mb-1 transition-colors`}>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -118,6 +118,16 @@ const Sidebar = ({ activePath }: SidebarProps) => {
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
           <span>EMI & Bills</span>
+        </Link>
+        
+        <Link href="/debt"
+          className={`flex items-center p-3 rounded-lg ${isActive("/debt") ? "bg-[#2D2D2D] text-[#FFD700]" : "hover:bg-[#2D2D2D] text-white hover:text-[#FFD700]"} transition-colors`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18"></path>
+            <path d="M6 6l12 12"></path>
+            <path d="M12 3v18"></path>
+          </svg>
+          <span>Debt Manager</span>
         </Link>
       </nav>
       
