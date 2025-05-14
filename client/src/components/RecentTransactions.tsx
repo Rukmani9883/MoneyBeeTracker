@@ -50,12 +50,23 @@ const RecentTransactions = ({
     return () => clearInterval(intervalId);
   }, [autoRefresh, refreshTransactions]);
   
-  // Set up financial data change listener
+  // Set up financial data change listener with improved handling
   useEffect(() => {
     // Function to handle the financial data changed event
     const handleFinancialDataChanged = () => {
-      console.log('Financial data changed, refreshing transactions');
-      refreshTransactions();
+      console.log('Financial data changed, refreshing transactions immediately');
+      
+      // Immediately invalidate and refetch the transactions data
+      queryClient.invalidateQueries({ 
+        queryKey: transactionsQueryKey,
+        refetchType: 'active',
+      });
+      
+      // Force an immediate refetch to ensure data is updated
+      queryClient.refetchQueries({ 
+        queryKey: transactionsQueryKey,
+        exact: true,
+      });
     };
     
     // Add event listener
@@ -65,7 +76,7 @@ const RecentTransactions = ({
     return () => {
       window.removeEventListener('financial-data-changed', handleFinancialDataChanged);
     };
-  }, [refreshTransactions]);
+  }, [queryClient, transactionsQueryKey]);
   
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: transactionsQueryKey,
@@ -74,7 +85,9 @@ const RecentTransactions = ({
       if (!res.ok) throw new Error('Failed to fetch transactions');
       return res.json();
     },
-    staleTime: 10000, // Consider data fresh for 10 seconds
+    staleTime: 0, // Always consider data stale to ensure fresh data
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gets focus
   });
 
   // Get appropriate payment method text based on transaction type and category
