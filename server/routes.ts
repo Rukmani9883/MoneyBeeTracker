@@ -1108,92 +1108,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get(`${api}/bills/upcoming`, async (req: Request, res: Response) => {
+  app.get(`${api}/bills/upcoming`, isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Get current date values
       const now = new Date();
       
-      // Get userId from session or query parameter
-      let userId: number;
+      // We have verified user is authenticated with isAuthenticated middleware
+      const userId = (req.session as any).userId;
       
-      if (req.session && req.session.userId) {
-        userId = req.session.userId;
-      } else if (req.query.userId) {
-        try {
-          const parsedId = parseInt(req.query.userId as string);
-          if (isNaN(parsedId)) {
-            console.error("Invalid userId in request:", req.query.userId);
-            return res.status(200).json([]); // Return empty array instead of error
-          }
-          userId = parsedId;
-        } catch (e) {
-          console.error("Error parsing userId:", e);
-          return res.status(200).json([]);
-        }
-      } else {
-        console.error("No userId provided in upcoming bills request");
-        return res.status(200).json([]); // Return empty array instead of error
-      }
-      
-      // Default to 30 days ahead if not specified
-      let daysAhead = 30;
-      if (req.query.daysAhead) {
-        try {
-          const parsedDays = parseInt(req.query.daysAhead as string);
-          if (!isNaN(parsedDays)) {
-            daysAhead = parsedDays;
-          }
-        } catch (e) {
-          console.error("Error parsing daysAhead:", e);
-          // Continue with default value
-        }
-      }
+      // Default to 30 days ahead
+      const daysAhead = 30;
       
       console.log(`Fetching upcoming bills for user ${userId} for next ${daysAhead} days`);
       
-      try {
-        // Get all bills for the user
-        const allBills = await storage.getBills(userId);
-        console.log(`Found ${allBills.length} total bills for user ${userId}`);
-        
-        // Calculate future date
-        const futureDate = new Date();
-        futureDate.setDate(now.getDate() + daysAhead);
-        
-        // Filter upcoming bills (not paid and due date in the future or today)
-        const upcomingBills = allBills.filter(bill => {
-          if (!bill.dueDate) return false;
-          
-          try {
-            const dueDate = new Date(bill.dueDate);
-            // Check if bill is unpaid and due date is between now and future date
-            return !bill.isPaid && dueDate >= now && dueDate <= futureDate;
-          } catch (err) {
-            console.error("Error processing bill date:", err);
-            return false;
-          }
-        });
-        
-        console.log(`Filtered to ${upcomingBills.length} upcoming bills`);
-        
-        // Sort by due date
-        upcomingBills.sort((a, b) => {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        });
-        
-        // Log the upcoming bills for debugging
-        upcomingBills.forEach(bill => {
-          console.log(`Upcoming bill: ${bill.name}, amount: ${bill.amount}, date: ${bill.dueDate}`);
-        });
-        
-        return res.status(200).json(upcomingBills);
-      } catch (billError) {
-        console.error("Error processing bills:", billError);
+      // Get all bills for the user
+      const allBills = await storage.getBills(userId);
+      console.log(`Found ${allBills.length} total bills for user ${userId}`);
+      
+      if (!allBills || allBills.length === 0) {
         return res.status(200).json([]);
       }
+      
+      // Calculate future date
+      const futureDate = new Date();
+      futureDate.setDate(now.getDate() + daysAhead);
+      
+      // Filter upcoming bills (not paid and due date in the future or today)
+      const upcomingBills = allBills.filter(bill => {
+        if (!bill.dueDate) return false;
+        
+        const dueDate = new Date(bill.dueDate);
+        // Check if bill is unpaid and due date is between now and future date
+        return !bill.isPaid && dueDate >= now && dueDate <= futureDate;
+      });
+      
+      console.log(`Filtered to ${upcomingBills.length} upcoming bills`);
+      
+      // Sort by due date
+      upcomingBills.sort((a, b) => {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
+      
+      // Log the upcoming bills for debugging
+      upcomingBills.forEach(bill => {
+        console.log(`Upcoming bill: ${bill.name}, amount: ${bill.amount}, date: ${bill.dueDate}`);
+      });
+      
+      return res.json(upcomingBills);
     } catch (error) {
       console.error("Error in upcoming bills endpoint:", error);
-      return res.status(200).json([]); // Return empty array instead of error
+      return res.status(500).json({ error: "Failed to fetch upcoming bills" });
     }
   });
 

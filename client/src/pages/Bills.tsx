@@ -83,27 +83,22 @@ const BillsPage = ({ userId }: BillsPageProps) => {
     }
   });
 
-  // Get upcoming bills
-  const { data: upcomingBills } = useQuery<Bill[]>({
+  // Get upcoming bills - using authenticated endpoint (no need to pass userId)
+  const { data: upcomingBills = [] } = useQuery<Bill[]>({
     queryKey: ['/api/bills/upcoming', userId],
-    queryFn: async () => {
-      try {
-        const res = await fetch(`/api/bills/upcoming?userId=${userId}&daysAhead=30`);
-        if (!res.ok) {
-          console.error(`Error fetching upcoming bills: ${res.status} ${res.statusText}`);
-          return [];
-        }
-        return res.json();
-      } catch (error) {
-        console.error('Failed to fetch upcoming bills:', error);
-        return [];
-      }
-    }
+    enabled: !!userId, // Only run query if userId exists
+    staleTime: 60000, // 1 minute cache
+    retry: 2 // Retry failed requests
   });
   
-  // Calculate total upcoming bills amount
+  // Calculate total upcoming bills amount - filtering for unpaid future bills
   const totalUpcomingAmount = upcomingBills?.reduce((total, bill) => {
-    if (!bill.isPaid) {
+    // Calculate if the bill is in the future (not past due)
+    const dueDate = new Date(bill.dueDate);
+    const now = new Date();
+    
+    // Only add to total if unpaid and due date is today or in the future
+    if (!bill.isPaid && dueDate >= now) {
       return total + bill.amount;
     }
     return total;
@@ -297,7 +292,13 @@ const BillsPage = ({ userId }: BillsPageProps) => {
               </div>
               <div className="font-mono font-medium text-xl text-white">{formatCurrency(totalUpcomingAmount)}</div>
               <div className="mt-2 text-xs flex items-center text-[#CCCCCC]">
-                <span>{upcomingBills?.length || 0} bills due in the next 30 days</span>
+                <span>
+                  {upcomingBills?.filter(bill => {
+                    const dueDate = new Date(bill.dueDate);
+                    const now = new Date();
+                    return !bill.isPaid && dueDate >= now;
+                  }).length || 0} bills due in the next 30 days
+                </span>
               </div>
             </CardContent>
           </Card>
