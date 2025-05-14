@@ -56,6 +56,12 @@ export async function apiRequest<T = any>(
     const res = await fetch(url, fetchOptions);
     await throwIfResNotOk(res);
     
+    // For 204 No Content responses (common with DELETE operations), return empty object
+    if (res.status === 204) {
+      console.log(`204 No Content response received for ${method} ${url}`);
+      return {} as T;
+    }
+    
     // Automatically invalidate related query caches based on the URL
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
       const endpoint = url.split('?')[0];
@@ -76,6 +82,15 @@ export async function apiRequest<T = any>(
       }
     }
     
+    // Check if there's actually content to parse
+    const contentType = res.headers.get('content-type');
+    
+    // If there's no content (like with 204) or it's not JSON, return empty object
+    if (res.status === 204 || !contentType || !contentType.includes('application/json')) {
+      return {} as T;
+    }
+    
+    // Otherwise parse the JSON response
     return res.json() as Promise<T>;
   } catch (error) {
     console.error("API request failed:", error);
