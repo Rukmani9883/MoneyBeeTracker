@@ -26,7 +26,7 @@ declare module 'express-session' {
 
 // Authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  console.log("Authentication check - User ID:", req.session.userId);
+  console.log("Authentication check - User ID:", req.session?.userId);
   
   if (req.session && req.session.userId) {
     console.log("User authenticated:", req.session.userId);
