@@ -10,7 +10,7 @@ import {
   bills,
   transactions,
   sessions,
-} from "@shared/schema";
+} from "../shared/schema";
 import { and, eq, lt, inArray, sql } from "drizzle-orm";
 
 async function cleanupExpiredAccounts() {
