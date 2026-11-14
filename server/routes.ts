@@ -26,7 +26,6 @@ declare module 'express-session' {
 
 // Authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  console.log("Authentication check - Session:", req.session);
   console.log("Authentication check - User ID:", req.session.userId);
   
   if (req.session && req.session.userId) {
@@ -87,17 +86,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
   
-  // Debug middleware to log session on every request
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log("Request path:", req.path);
-    console.log("Session debug - ID:", req.sessionID);
-    console.log("Session debug - Cookie:", req.headers.cookie);
-    console.log("Session debug - User ID:", req.session.userId);
-    next();
-  });
 
   // prefix all routes with /api
   const api = "/api";
+
+  // All financial endpoints require a valid session and must only access its records.
+  // This guard is registered before every financial route.
+  const financialResources = new Set([
+    'incomes', 'expenses', 'savings', 'vault-goals', 'debts', 'bills',
+    'transactions', 'dashboard', 'demo-data', 'auto-allocate-savings', 'reset-data'
+  ]);
+  const recordLoaders: Record<string, (id: number) => Promise<{ userId: number } | undefined>> = {
+    incomes: (id) => storage.getIncomeById(id),
+    expenses: (id) => storage.getExpenseById(id),
+    savings: (id) => storage.getSavingById(id),
+    'vault-goals': (id) => storage.getVaultGoalById(id),
+    debts: (id) => storage.getDebtById(id),
+    bills: (id) => storage.getBillById(id),
+    transactions: (id) => storage.getTransactionById(id),
+  };
+  app.use(api, async (req: Request, res: Response, next: NextFunction) => {
+    const [resource, recordId] = req.path.split('/').filter(Boolean);
+    if (!financialResources.has(resource)) return next();
+    if (!req.session?.userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    // Prevent clients from changing the ownership of existing records.
+    if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+      req.body.userId = req.session.userId;
+    }
+    // Some older frontend requests still include userId as a query parameter.
+    // The handlers use the session ID instead, so the query value is ignored.
+    if (recordId && /^\d+$/.test(recordId) && recordLoaders[resource]) {
+      try {
+        const record = await recordLoaders[resource](Number(recordId));
+        if (!record || record.userId !== req.session.userId) {
+          return res.status(404).json({ message: 'Record not found' });
+        }
+      } catch (error) {
+        console.error('Record authorization failed:', error);
+        return res.status(500).json({ message: 'Unable to verify record ownership' });
+      }
+    }
+    next();
+  });
 
   // User routes
   app.post(`${api}/auth/register`, async (req: Request, res: Response) => {
@@ -155,8 +186,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set user in session
       req.session.userId = user.id;
       console.log("Setting session user ID:", user.id);
-      console.log("Session ID:", req.sessionID);
-      console.log("Full session object:", req.session);
       
       // Save session explicitly to ensure it's stored before responding
       req.session.save((err) => {
@@ -169,19 +198,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { password: userPassword, ...userWithoutPassword } = user;
         
         // Check our session data again after save
-        console.log("After save - Session ID:", req.sessionID);
         console.log("After save - User ID in session:", req.session.userId);
         
         console.log("Login successful for user:", username);
         
-        // Include session info in the response for debugging
-        res.status(200).json({
-          ...userWithoutPassword,
-          sessionInfo: {
-            sessionId: req.sessionID,
-            sessionUserId: req.session.userId
-          }
-        });
+        res.status(200).json(userWithoutPassword);
       });
     } catch (error: any) {
       console.error("Login error:", error);
@@ -191,7 +212,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get(`${api}/auth/user`, isAuthenticated, async (req: Request, res: Response) => {
     try {
-      console.log("Get user profile - Session ID:", req.sessionID);
       console.log("Get user profile - User ID from session:", req.session.userId);
       
       const userId = req.session.userId;
@@ -223,8 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(`${api}/auth/logout`, (req: Request, res: Response) => {
     console.log("Logout request");
     if (req.session) {
-      const sessionID = req.sessionID;
-      console.log("Session ID being destroyed:", sessionID);
+
       
       req.session.destroy((err) => {
         if (err) {
@@ -310,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Income routes
   app.get(`${api}/incomes`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -337,9 +356,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/incomes`, async (req: Request, res: Response) => {
     try {
-      const incomeData = insertIncomeSchema.parse(req.body);
+      const incomeData = insertIncomeSchema.parse({ ...req.body, userId: req.session.userId! });
       const income = await storage.createIncome(incomeData);
       res.status(201).json(income);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/incomes/monthly`, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const month = parseInt(req.query.month as string);
+      const year = parseInt(req.query.year as string);
+      
+      if (isNaN(userId) || isNaN(month) || isNaN(year)) {
+        return res.status(400).json({ message: "Invalid parameters" });
+      }
+      
+      const incomes = await storage.getMonthlyIncome(userId, month, year);
+      const total = await storage.getTotalIncome(userId, month, year);
+      
+      res.status(200).json({ incomes, total });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
@@ -363,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put(`${api}/incomes/:id`, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const incomeData = req.body;
+      const { userId: _ignoredUserId, id: _ignoredId, ...incomeData } = req.body;
       
       // Convert date string to Date object if present
       if (incomeData.date && typeof incomeData.date === 'string') {
@@ -397,29 +435,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get(`${api}/incomes/monthly`, async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.query.userId as string);
-      const month = parseInt(req.query.month as string);
-      const year = parseInt(req.query.year as string);
-      
-      if (isNaN(userId) || isNaN(month) || isNaN(year)) {
-        return res.status(400).json({ message: "Invalid parameters" });
-      }
-      
-      const incomes = await storage.getMonthlyIncome(userId, month, year);
-      const total = await storage.getTotalIncome(userId, month, year);
-      
-      res.status(200).json({ incomes, total });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
+
 
   // Expense routes
   app.get(`${api}/expenses`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -461,9 +482,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/expenses`, async (req: Request, res: Response) => {
     try {
-      const expenseData = insertExpenseSchema.parse(req.body);
+      const expenseData = insertExpenseSchema.parse({ ...req.body, userId: req.session.userId! });
       const expense = await storage.createExpense(expenseData);
       res.status(201).json(expense);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get(`${api}/expenses/monthly`, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const month = parseInt(req.query.month as string);
+      const year = parseInt(req.query.year as string);
+      
+      if (isNaN(userId) || isNaN(month) || isNaN(year)) {
+        return res.status(400).json({ message: "Invalid parameters" });
+      }
+      
+      const expenses = await storage.getMonthlyExpenses(userId, month, year);
+      const total = await storage.getTotalExpenses(userId, month, year);
+      
+      res.status(200).json({ expenses, total });
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
@@ -487,7 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put(`${api}/expenses/:id`, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const expenseData = req.body;
+      const { userId: _ignoredUserId, id: _ignoredId, ...expenseData } = req.body;
       const updatedExpense = await storage.updateExpense(id, expenseData);
       
       if (!updatedExpense) {
@@ -515,29 +555,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get(`${api}/expenses/monthly`, async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.query.userId as string);
-      const month = parseInt(req.query.month as string);
-      const year = parseInt(req.query.year as string);
-      
-      if (isNaN(userId) || isNaN(month) || isNaN(year)) {
-        return res.status(400).json({ message: "Invalid parameters" });
-      }
-      
-      const expenses = await storage.getMonthlyExpenses(userId, month, year);
-      const total = await storage.getTotalExpenses(userId, month, year);
-      
-      res.status(200).json({ expenses, total });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
+
 
   // Savings routes
   app.get(`${api}/savings`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -579,7 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/savings`, async (req: Request, res: Response) => {
     try {
-      const savingData = insertSavingsSchema.parse(req.body);
+      const savingData = insertSavingsSchema.parse({ ...req.body, userId: req.session.userId! });
       const saving = await storage.createSaving(savingData);
       res.status(201).json(saving);
     } catch (error) {
@@ -589,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get(`${api}/savings/monthly`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       const month = req.query.month as string;
       const year = parseInt(req.query.year as string);
       
@@ -612,7 +635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put(`${api}/savings/:id`, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const savingData = req.body;
+      const { userId: _ignoredUserId, id: _ignoredId, ...savingData } = req.body;
       const updatedSaving = await storage.updateSaving(id, savingData);
       
       if (!updatedSaving) {
@@ -628,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Vault Goals routes
   app.get(`${api}/vault-goals`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -642,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/vault-goals`, async (req: Request, res: Response) => {
     try {
-      const goalData = insertVaultGoalSchema.parse(req.body);
+      const goalData = insertVaultGoalSchema.parse({ ...req.body, userId: req.session.userId! });
       const goal = await storage.createVaultGoal(goalData);
       res.status(201).json(goal);
     } catch (error) {
@@ -668,7 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put(`${api}/vault-goals/:id`, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const goalData = req.body;
+      const { userId: _ignoredUserId, id: _ignoredId, ...goalData } = req.body;
       const updatedGoal = await storage.updateVaultGoal(id, goalData);
       
       if (!updatedGoal) {
@@ -741,7 +764,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auto-allocate savings to vault goals based on proportional distribution
   app.post(`${api}/auto-allocate-savings`, async (req: Request, res: Response) => {
     try {
-      const { userId, amount, month, year } = req.body;
+      const { amount, month, year } = req.body;
+      const userId = req.session.userId!;
       
       if (!userId || !amount || isNaN(amount) || amount <= 0) {
         return res.status(400).json({ message: "Missing or invalid parameters" });
@@ -897,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debt Manager routes
   app.get(`${api}/debts`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -911,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get(`${api}/debts/owed-by-user`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -926,7 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get(`${api}/debts/owed-to-user`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -941,7 +965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/debts`, async (req: Request, res: Response) => {
     try {
-      const debtData = insertDebtSchema.parse(req.body);
+      const debtData = insertDebtSchema.parse({ ...req.body, userId: req.session.userId! });
       const debt = await storage.createDebt(debtData);
       res.status(201).json(debt);
     } catch (error: any) {
@@ -967,7 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put(`${api}/debts/:id`, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const debtData = req.body;
+      const { userId: _ignoredUserId, id: _ignoredId, ...debtData } = req.body;
       
       // Convert date string to Date object if present
       if (debtData.dueDate && typeof debtData.dueDate === 'string') {
@@ -1004,7 +1028,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bills routes
   app.get(`${api}/bills`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -1045,55 +1069,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/bills`, async (req: Request, res: Response) => {
     try {
-      const billData = insertBillSchema.parse(req.body);
+      const billData = insertBillSchema.parse({ ...req.body, userId: req.session.userId! });
       const bill = await storage.createBill(billData);
       res.status(201).json(bill);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.get(`${api}/bills/:id`, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const bill = await storage.getBillById(id);
-      
-      if (!bill) {
-        return res.status(404).json({ message: "Bill not found" });
-      }
-      
-      res.status(200).json(bill);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.put(`${api}/bills/:id`, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const billData = req.body;
-      const updatedBill = await storage.updateBill(id, billData);
-      
-      if (!updatedBill) {
-        return res.status(404).json({ message: "Bill not found" });
-      }
-      
-      res.status(200).json(updatedBill);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete(`${api}/bills/:id`, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteBill(id);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Bill not found" });
-      }
-      
-      res.status(204).send();
     } catch (error) {
       res.status(400).json({ message: error.message });
     }
@@ -1152,6 +1130,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get(`${api}/bills/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const bill = await storage.getBillById(id);
+      
+      if (!bill) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+      
+      res.status(200).json(bill);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put(`${api}/bills/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { userId: _ignoredUserId, id: _ignoredId, ...billData } = req.body;
+      const updatedBill = await storage.updateBill(id, billData);
+      
+      if (!updatedBill) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+      
+      res.status(200).json(updatedBill);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete(`${api}/bills/:id`, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteBill(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+
+
   app.post(`${api}/bills/:id/mark-paid`, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -1170,7 +1196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Transaction routes
   app.get(`${api}/transactions`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -1184,7 +1210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${api}/transactions`, async (req: Request, res: Response) => {
     try {
-      const transactionData = insertTransactionSchema.parse(req.body);
+      const transactionData = insertTransactionSchema.parse({ ...req.body, userId: req.session.userId! });
       const transaction = await storage.createTransaction(transactionData);
       res.status(201).json(transaction);
     } catch (error) {
@@ -1194,7 +1220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get(`${api}/transactions/recent`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       const limit = parseInt(req.query.limit as string) || 5;
       
       if (isNaN(userId)) {
@@ -1210,7 +1236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get(`${api}/transactions/monthly`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       const month = parseInt(req.query.month as string);
       const year = parseInt(req.query.year as string);
       const limit = parseInt(req.query.limit as string) || 10;
@@ -1234,7 +1260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced Dashboard summary route with auto-calculated savings
   app.get(`${api}/dashboard/summary`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -1387,7 +1413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create test data for demonstration
   app.post(`${api}/demo-data`, async (req: Request, res: Response) => {
     try {
-      const userId = parseInt(req.query.userId as string);
+      const userId = req.session.userId!;
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
@@ -1540,3 +1566,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
