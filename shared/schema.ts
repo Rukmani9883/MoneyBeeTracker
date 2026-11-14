@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   email: text("email"),
   profileImage: text("profile_image"),
   createdAt: timestamp("created_at").defaultNow(),
+  isPermanent: boolean("is_permanent").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
