@@ -62,6 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   const PgSession = connectPgSimple(session);
+  app.set("trust proxy", 1);
   const sessionStore = new PgSession({
     pool,
     tableName: 'sessions', // Use the existing sessions table
@@ -72,11 +73,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     session({
       store: sessionStore,
       name: 'connect.sid', // Use the default Express session cookie name for consistency
-      secret: process.env.SESSION_SECRET || 'money-bee-secret',
+      secret: process.env.SESSION_SECRET!,
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: false, // Set to false for development since we're not using HTTPS
+        secure: process.env.NODE_ENV === "production", // Set to false for development since we're not using HTTPS
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
