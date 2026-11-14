@@ -36,6 +36,13 @@ async function cleanupExpiredAccounts() {
 
       const ids = expiredUsers.map((user) => user.id);
 
+      if (process.env.CLEANUP_DRY_RUN !== "false") {
+        console.log(
+          `[DRY RUN] ${ids.length} account(s) eligible for deletion.`
+        );
+        return 0;
+      }
+
       if (ids.length === 0) return 0;
 
       // Remove sessions belonging to expired accounts.
