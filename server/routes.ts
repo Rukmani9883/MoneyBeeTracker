@@ -1417,6 +1417,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
+
+      const existingIncomes = await storage.getIncomes(userId);
+      const existingExpenses = await storage.getExpenses(userId);
+      const existingGoals = await storage.getVaultGoals(userId);
+      const existingBills = await storage.getBills(userId);
+
+      if (
+          existingIncomes.length > 0 ||
+          existingExpenses.length > 0 ||
+          existingGoals.length > 0 ||
+          existingBills.length > 0
+        ) {
+          return res.status(200).json({
+            message: "Demo data already exists or account contains data"
+          });
+        }
       
       const now = new Date();
       const currentMonth = now.getMonth();
