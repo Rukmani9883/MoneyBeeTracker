@@ -23,8 +23,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run safe cleanup test
+      - name: Run account cleanup
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          CLEANUP_DRY_RUN: 'true'
+          CLEANUP_DRY_RUN: 'false'
         run: npm run cleanup:test
