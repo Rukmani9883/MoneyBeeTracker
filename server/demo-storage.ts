@@ -12,10 +12,10 @@ import {
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
+import bcrypt from "bcryptjs";
 
 export async function createTemporaryDemoUser(masterUserId: number) {
   return db.transaction(async (tx) => {
-    // Confirm that the source is the permanent Demo account.
     const [master] = await tx
       .select()
       .from(users)
@@ -29,76 +29,116 @@ export async function createTemporaryDemoUser(masterUserId: number) {
       throw new Error("Permanent Demo account not found");
     }
 
-    // Each visitor receives a unique, temporary account.
     const uniqueId = randomBytes(16).toString("hex");
+    const randomPassword = randomBytes(32).toString("hex");
 
     const [temporaryUser] = await tx
       .insert(users)
       .values({
         username: `demo_${uniqueId}`,
-        password: randomBytes(32).toString("hex"),
+        password: await bcrypt.hash(randomPassword, 10),
         name: "Demo Visitor",
         email: null,
         isPermanent: false,
       })
       .returning();
 
-    // Copy records without reusing their original IDs.
+    // Copy records and map old IDs to new IDs.
     const copyRecords = async (table: any) => {
+      const idMap = new Map<number, number>();
+
       const records = await tx
         .select()
         .from(table)
         .where(eq(table.userId, masterUserId));
 
-      if (records.length === 0) return;
-
-      const copies = records.map((record: any) => {
+      for (const record of records) {
         const { id, userId, ...data } = record;
 
-        return {
-          ...data,
-          userId: temporaryUser.id,
-        };
-      });
+        const [copy] = await tx
+          .insert(table)
+          .values({
+            ...data,
+            userId: temporaryUser.id,
+          })
+          .returning();
 
-      await tx.insert(table).values(copies);
+        idMap.set(id, copy.id);
+      }
+
+      return idMap;
     };
 
-    await copyRecords(incomes);
-    await copyRecords(expenses);
+    const incomeIds = await copyRecords(incomes);
+    const expenseIds = await copyRecords(expenses);
+
     await copyRecords(savings);
     await copyRecords(vaultGoals);
-    await copyRecords(debts);
-    await copyRecords(bills);
 
-    // Transactions can reference IDs from other tables.
-    // Copy them with new references to the copied records.
+    const debtIds = await copyRecords(debts);
+    const billIds = await copyRecords(bills);
+
     const sourceTransactions = await tx
       .select()
       .from(transactions)
       .where(eq(transactions.userId, masterUserId));
 
-    if (sourceTransactions.length > 0) {
-      const copies = sourceTransactions.map((record) => {
-        const {
-          id,
-          userId,
-          sourceId,
-          destinationId,
-          ...data
-        } = record;
+    for (const record of sourceTransactions) {
+      const {
+        id,
+        userId,
+        sourceId,
+        destinationId,
+        ...data
+      } = record;
 
-        return {
-          ...data,
-          userId: temporaryUser.id,
-          sourceId: null,
-          destinationId: null,
-        };
+      let mappedSourceId: number | null = null;
+      let mappedDestinationId: number | null = null;
+
+      switch (record.type.toLowerCase()) {
+        case "income":
+          mappedSourceId =
+            sourceId == null
+              ? null
+              : incomeIds.get(sourceId) ?? null;
+          break;
+
+        case "expense":
+          mappedSourceId =
+            sourceId == null
+              ? null
+              : expenseIds.get(sourceId) ?? null;
+          break;
+
+        case "debt":
+          mappedSourceId =
+            sourceId == null
+              ? null
+              : debtIds.get(sourceId) ?? null;
+          break;
+
+        case "bill":
+          mappedSourceId =
+            sourceId == null
+              ? null
+              : billIds.get(sourceId) ?? null;
+          break;
+
+        default:
+          // Other transaction types need their own mapping
+          // rules if they reference financial records.
+          break;
+      }
+
+      await tx.insert(transactions).values({
+        ...data,
+        userId: temporaryUser.id,
+        sourceId: mappedSourceId,
+        destinationId: mappedDestinationId,
       });
-
-      await tx.insert(transactions).values(copies);
     }
 
     return temporaryUser;
   });
 }
+
