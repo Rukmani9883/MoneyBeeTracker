@@ -184,8 +184,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      // Set user in session
-      req.session.userId = user.id;
+
+      // Give Demo visitors their own temporary copy of the data.
+      // Normal users continue using their existing accounts.
+      let loginUser = user;
+
+      if (user.username === "Demo" && user.isPermanent) {
+        loginUser = await createTemporaryDemoUser(user.id);
+      }
+
+      // Set the authenticated account in the session.
+      req.session.userId = loginUser.id;
+
       console.log("Setting session user ID:", user.id);
       
       // Save session explicitly to ensure it's stored before responding
@@ -196,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Don't return password in response
-        const { password: userPassword, ...userWithoutPassword } = user;
+        const { password: userPassword, ...userWithoutPassword } = loginUser;
         
         // Check our session data again after save
         console.log("After save - User ID in session:", req.session.userId);
