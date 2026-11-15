@@ -196,24 +196,6 @@ const TransactionForm = ({
         });
       }
       
-      // Add a transaction record
-      if (response) {
-        // Create transaction record if needed
-        await apiRequest(
-          "POST",
-          "/api/transactions", 
-          {
-            userId: values.userId,
-            type: values.transactionType,
-            date: dateObject.toISOString(),
-            amount: parseFloat(values.amount),
-            category: values.category,
-            description: values.name,
-            sourceId: null,
-            destinationId: null,
-          }
-        );
-      }
       
       // Notify the application that financial data has changed
       // This will trigger updates in the dashboard and recent transactions
