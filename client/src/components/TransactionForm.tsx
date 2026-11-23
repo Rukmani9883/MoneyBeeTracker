@@ -26,7 +26,7 @@ import { notifyFinancialDataChanged } from "@/lib/eventUtils";
 
 interface TransactionFormProps {
   userId: number;
-  type?: "income" | "expense" | "transfer";
+  type?: "income" | "expense";
   existingTransaction?: Income | Expense | null;
   onSuccess?: () => void;
 }
@@ -38,7 +38,7 @@ const formSchema = z.object({
     .refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "Amount must be a positive number"),
   category: z.string().min(1, "Category is required"),
   date: z.string().min(1, "Date is required"),
-  transactionType: z.enum(["income", "expense", "transfer"]),
+  transactionType: z.enum(["income", "expense"]),
   recurring: z.boolean().default(false),
   frequency: z.string().nullable().optional(),
   notes: z.string().optional(),
@@ -71,13 +71,6 @@ const categories = {
     "Dining",
     "Other",
   ],
-  transfer: [
-    "Savings", 
-    "Investment", 
-    "Debt Repayment", 
-    "Account Transfer", 
-    "Other"
-  ]
 };
 
 const frequencies = [
@@ -265,21 +258,6 @@ const TransactionForm = ({
                         className="flex-1 bg-[#2D2D2D] peer-data-[state=checked]:bg-[#4CAF50] text-[#CCCCCC] peer-data-[state=checked]:text-white py-2 text-center cursor-pointer font-medium hover:bg-[#3D3D3D] transition-colors"
                       >
                         Income
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex-1 flex items-center space-x-1 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem
-                          value="transfer"
-                          id="transfer"
-                          className="peer sr-only"
-                        />
-                      </FormControl>
-                      <FormLabel
-                        htmlFor="transfer"
-                        className="flex-1 bg-[#2D2D2D] peer-data-[state=checked]:bg-[#2196F3] text-[#CCCCCC] peer-data-[state=checked]:text-white py-2 text-center cursor-pointer font-medium hover:bg-[#3D3D3D] transition-colors"
-                      >
-                        Transfer
                       </FormLabel>
                     </FormItem>
                   </div>
