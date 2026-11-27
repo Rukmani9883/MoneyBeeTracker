@@ -138,8 +138,12 @@ const Sidebar = ({ activePath }: SidebarProps) => {
               <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
             </svg>
           </div>
-          <div className="ml-2">
-            <p className="text-sm font-medium text-white">{user?.username || "User"}</p>
+          <div className="ml-2">            
+            <p className="text-sm font-medium text-white">
+              {/^demo_[a-f0-9]{32}$/.test(user?.username || "")
+                ? "Demo Visitor"
+              : user?.username || "User"}
+            </p>
             <p className="text-xs text-[#999999]">{user?.email || "MoneyBee User"}</p>
           </div>
           
