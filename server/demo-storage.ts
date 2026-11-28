@@ -14,6 +14,31 @@ import { eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 
+// Adjust sample dates to the current month.
+function adjustDemoDate(value: Date | string | null) {
+  if (!value) return value;
+
+  const originalDate = new Date(value);
+  const now = new Date();
+
+  const lastDay = new Date(
+    now.getUTCFullYear(),
+    now.getUTCMonth() + 1,
+    0
+  ).getDate();
+
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      Math.min(originalDate.getUTCDate(), lastDay),
+      originalDate.getUTCHours(),
+      originalDate.getUTCMinutes(),
+      originalDate.getUTCSeconds()
+    )
+  );
+}
+
 export async function createTemporaryDemoUser(masterUserId: number) {
   return db.transaction(async (tx) => {
     const [master] = await tx
@@ -32,6 +57,10 @@ export async function createTemporaryDemoUser(masterUserId: number) {
     const uniqueId = randomBytes(16).toString("hex");
     const randomPassword = randomBytes(32).toString("hex");
 
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const currentMonth = now.getUTCMonth() + 1;
+
     const [temporaryUser] = await tx
       .insert(users)
       .values({
@@ -43,7 +72,7 @@ export async function createTemporaryDemoUser(masterUserId: number) {
       })
       .returning();
 
-    // Copy records and map old IDs to new IDs.
+    // Copy records, adjust dates and map old IDs to new IDs.
     const copyRecords = async (table: any) => {
       const idMap = new Map<number, number>();
 
@@ -54,6 +83,50 @@ export async function createTemporaryDemoUser(masterUserId: number) {
 
       for (const record of records) {
         const { id, userId, ...data } = record;
+
+        if (data.date) {
+          data.date = adjustDemoDate(data.date);
+        }
+
+        if (data.dueDate) {
+          data.dueDate = adjustDemoDate(data.dueDate);
+        }
+
+        if (data.deadline) {
+          data.deadline = adjustDemoDate(data.deadline);
+        }
+
+        if (data.createdAt) {
+          data.createdAt = adjustDemoDate(data.createdAt);
+        }
+
+        // Update savings month and year.
+        if (table === savings) {
+          const originalMonth = String(data.month);
+
+          if (/^\d+$/.test(originalMonth)) {
+            data.month = originalMonth.length === 2
+              ? String(currentMonth).padStart(2, "0")
+              : String(currentMonth);
+          } else {
+            const format = originalMonth.length === 3
+              ? "short"
+              : "long";
+
+            data.month = now.toLocaleString("en-US", {
+              month: format,
+              timeZone: "UTC",
+            });
+
+            if (originalMonth === originalMonth.toLowerCase()) {
+              data.month = data.month.toLowerCase();
+            } else if (originalMonth === originalMonth.toUpperCase()) {
+              data.month = data.month.toUpperCase();
+            }
+          }
+
+          data.year = currentYear;
+        }
 
         const [copy] = await tx
           .insert(table)
@@ -125,13 +198,12 @@ export async function createTemporaryDemoUser(masterUserId: number) {
           break;
 
         default:
-          // Other transaction types need their own mapping
-          // rules if they reference financial records.
           break;
       }
 
       await tx.insert(transactions).values({
         ...data,
+        date: adjustDemoDate(record.date) as Date,
         userId: temporaryUser.id,
         sourceId: mappedSourceId,
         destinationId: mappedDestinationId,
@@ -141,4 +213,3 @@ export async function createTemporaryDemoUser(masterUserId: number) {
     return temporaryUser;
   });
 }
-
